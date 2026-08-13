@@ -1,52 +1,183 @@
 # Sprint Plan
 
-## Sprint 0 — Scaffold (current)
+One-week sprints. The backlog (`PRODUCT_BACKLOG.md`) is the single list of
+stories; this plan is the roadmap broken into sprints with goals and
+commitments. Sprint commitments are trimmed to velocity at each planning
+session.
 
-**Goal:** a reproducible full-stack scaffold with auth, a working schema, and a
-green build — plus the agile process in place to run future sprints.
+## Phase map
 
-**Sprint length:** one week (this is the setup sprint).
+| Phase | Sprints | What it unlocks |
+| ----- | ------- | --------------- |
+| 1. School → Classroom → Lessons → Teacher/Learner | 1–2 | Core stability + traction |
+| 2. Mentor role in the classroom | 3 | Mentorship / apprenticeship |
+| 3. Teams within a Space | 4 | Collaboration |
+| 4. Challenge + Project entities | 5–6 | Problem-solving |
+| 5. Alliances / Countries | 7–8 | Macro-level scaling |
 
-### Commitments
+---
+
+## Sprint 0 — Scaffold (done)
+
+**Goal:** reproducible full-stack scaffold with auth, a working schema, and a
+green build, plus the agile process.
 
 | Item | Description | Status |
 | ---- | ----------- | ------ |
 | Stack | Next.js 16 (App Router, TS strict, Turbopack) | done |
 | UI | Tailwind v4 + shadcn/ui (radix base, nova preset) | done |
 | Backend | Supabase CLI local dev stack on remapped ports | done |
-| Schema | Migrations for profiles, communities, members, problems, projects + RLS + grants | done |
-| Seed | Demo user `demo@theguild.dev` / `demo-password` with a community, problem, project | done |
-| Auth | Browser + server clients, session-refresh proxy, `/login`, `/signup`, protected `/dashboard` | done |
-| Verification | lint, typecheck, production build all green; auth + RLS positive/negative smoke tests pass | done |
-| Process | Working agreements, DoD, backlog, sprint plan | done |
-
-### Retro — Sprint 0
-
-Filled in at sprint close. Planned experiments: verify every schema change via
-`db:reset` from scratch; run `db:types` after every migration.
+| Schema | profiles, communities, members, problems, projects + RLS + grants | done |
+| Seed | demo user + Civic Labs community/problem/project | done |
+| Auth | browser/server clients, session proxy, `/login`, protected `/dashboard` | done |
+| Verification | lint/typecheck/build green; auth + RLS positive/negative tests pass | done |
+| Process | working agreements, DoD, backlog, sprint plan, conceptual model | done |
 
 ---
 
-## Sprint 1 — MVP loop (next)
+## Sprint 1 — Rooms that hold people (Phase 1a)
 
-**Goal:** a real community can form, post a problem, start a project, and see
-progress — the full MVP loop.
+**Goal:** an Ecosystem exists, a Space lives inside it, and users can join —
+the container layer of the product.
 
-### Candidate commitment (provisional)
+### Commitments (provisional)
+- E-1 Create an ecosystem
+- E-2 Join an ecosystem
+- S-1 Create a space
+- S-2 Browse spaces
+- S-3 Join a space
+- S-4 Space home page
 
-- C-1 Create a community
-- C-2 Browse communities
-- C-3 Join a community
-- C-5 Community page
-- P-1 Report a problem
-- P-2 Problem board
-- PR-1 Start a project
-- PR-2 Project detail
-- M-3 Dashboard data wiring
+### Schema work — DONE
+- New `ecosystems` table (name, type, vision, mission, description,
+  created_by) + RLS/grants
+- New `spaces` table (ecosystem_id, name, slug, description, type, created_by)
+  + RLS/grants
+- New `space_memberships` table (space_id, user_id, role, joined_at, unique
+  pair) + RLS/grants
+- Enums `ecosystem_type`, `space_type`, `user_space_role`
+- Dropped the old community layer (`communities`, `community_members`,
+  `problems`, `projects`) — Challenge/Project return redesigned in Sprints
+  5/6. Migrations `20260812000000` + `20260812000001` apply from scratch;
+  `db:types` regenerated; seed rebuilt (demo user → Civic Labs Academy →
+  Civic Prototyping Class, teacher role).
+- RLS verified: learner self-join allowed, teacher self-join blocked, foreign
+  `created_by` blocked.
 
-Trim to a realistic velocity in the Sprint 1 planning session. Estimate each as
-S/M/L before committing.
+### UI work — IN PROGRESS
+- Dashboard reads ecosystems + spaces + memberships (done, no create flows yet)
+- E-1/E-2/S-1/S-2/S-3/S-4 create/join/browse flows still to build
 
-### Retro — Sprint 1
+### DoD notes
+- Fresh `db:reset` passes; `db:types` regenerated and committed.
 
+---
+
+## Sprint 2 — Lessons and teachers (Phase 1b)
+
+**Goal:** teachers publish content and learners consume it — traction.
+
+### Commitments (provisional)
+- R-1 Per-space roles (role is a per-space property, not global)
+- S-5 Space membership management
+- L-1 Publish content
+- L-2 Content library
+- L-3 Lesson view
+- L-4 Lesson progress
+
+### Schema work
+- New `content` table + RLS/grants; per-space role semantics on members.
+
+---
+
+## Sprint 3 — Mentors (Phase 2)
+
+**Goal:** mentorship capability — mentors guide learners through content and
+projects.
+
+### Commitments (provisional)
+- R-2 Assign mentors
+- R-3 Mentor guidance (mentee list, progress view)
+- R-4 Role history on profile (P2, only if sprint goal holds)
+
+### Schema work
+- Mentor assignment on space membership + mentee links.
+
+---
+
+## Sprint 4 — Teams (Phase 3)
+
+**Goal:** learners form teams inside a Space — collaboration.
+
+### Commitments (provisional)
+- T-1 Form a team
+- T-2 Join a team (request/accept)
+- T-3 Team page (roster + mentor link)
+- T-4 Leave/remove (P2, only if sprint goal holds)
+
+### Schema work
+- New `teams` + `team_members` tables + RLS/grants.
+
+---
+
+## Sprint 5 — Challenges (Phase 4a)
+
+**Goal:** entities post solvable challenges — problem-solving starts.
+
+### Commitments (provisional)
+- CH-1 Post a challenge
+- CH-2 Challenge visibility (ecosystem-public vs space-restricted)
+- CH-3 Challenge board (filters)
+- CH-4 Challenge lifecycle
+
+### Schema work
+- `problems` gains budget/prize, deadline, target_skill_level, visibility.
+
+---
+
+## Sprint 6 — Projects (Phase 4b)
+
+**Goal:** teams turn challenges into submitted projects — the solving loop.
+
+### Commitments (provisional)
+- PR-1 Create a project mapped to a challenge
+- PR-2 Project detail (team, status, mentor-in-charge, repo/docs links)
+- PR-3 Project lifecycle (draft → in-progress → submitted)
+- PR-4 Submit project
+
+### Schema work
+- `projects` gains team, mentor-in-charge, repo_url, submitted_at.
+
+---
+
+## Sprint 7 — Alliances (Phase 5a)
+
+**Goal:** ecosystems nest — schools group into alliances/countries.
+
+### Commitments (provisional)
+- M-1 Ecosystem hierarchy
+- M-4 Ecosystem directory
+
+### Schema work
+- Ecosystem self-relation (`parent_id`) for nesting.
+
+---
+
+## Sprint 8 — Impact at scale (Phase 5b)
+
+**Goal:** solutions roll up across ecosystems — the macro payoff.
+
+### Commitments (provisional)
+- M-2 Cross-ecosystem visibility of challenges
+- M-3 Impact reporting at alliance/country level
+
+---
+
+## Retro log
+
+### Sprint 0
+Planned experiments: verify every schema change via `db:reset` from scratch;
+run `db:types` after every migration.
+
+### Sprint 1
 _(blank; filled at sprint close)_

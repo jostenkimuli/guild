@@ -1,11 +1,14 @@
 # TheGuild
 
 An educational ecosystem where large-scale virtual communities solve real-world
-problems. Members join communities, communities take on real problems, project
-guilds form to solve them, and progress is visible to everyone.
+problems. Schools create classrooms, learners form teams, teams solve real
+challenges into projects, and results roll up across alliances of schools —
+guided by mentors, at any scale.
 
 **Stack:** Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 ·
 shadcn/ui · Supabase (local CLI dev stack)
+
+Domain blueprint: see [`docs/CONCEPTUAL_MODEL.md`](docs/CONCEPTUAL_MODEL.md).
 
 ## Prerequisites
 
@@ -41,7 +44,8 @@ npm run dev
 # open http://localhost:3000
 ```
 
-Demo account: `demo@theguild.dev` / `demo-password` (member of "Civic Labs").
+Demo account: `demo@theguild.dev` / `demo-password` — teacher of "Civic
+Prototyping Class" inside the "Civic Labs Academy" ecosystem.
 
 ## Common commands
 
@@ -68,8 +72,25 @@ supabase/
   migrations/     # SQL migrations (schema + RLS + grants)
   seed.sql        # local dev data
   config.toml     # local stack config (ports, providers)
-docs/agile/       # working agreements, DoD, backlog, sprint plan
+docs/
+  CONCEPTUAL_MODEL.md  # domain blueprint (entities, rules, schema map)
+  agile/               # working agreements, DoD, backlog, sprint plan
 ```
+
+## Domain model (current schema)
+
+`Ecosystem → Space → SpaceMembership`, with per-space roles
+(`teacher`/`learner`/`mentor`/`collaborator`/`admin`).
+
+- `ecosystems` — top-level boundary (school, university, organization,
+  macro_alliance); holds vision, mission, description, type.
+- `spaces` — containers inside an ecosystem (classroom, innovation_hub,
+  project_group).
+- `space_memberships` — the flexible per-space role link
+  (`UNIQUE (space_id, user_id)`).
+
+Content (Sprint 2), Teams (Sprint 4), Challenge (Sprint 5), and Project
+(Sprint 6) tables are planned; see `docs/agile/SPRINT_PLAN.md`.
 
 ## Engineering process
 
@@ -84,6 +105,7 @@ We run one-week sprints. Process artifacts live in `docs/agile/`:
 
 Every table enables row-level security with explicit grants for the `anon` and
 `authenticated` API roles (this Supabase version does not auto-grant). Policies
-are the security boundary: e.g. projects are only readable by members of the
-community that owns the problem. After any schema change, regenerate types with
-`npm run db:types`.
+are the security boundary: e.g. self-joins are limited to `learner`/
+`collaborator` roles, teachers/mentors/admins are assigned by space staff, and
+ecosystem/space ownership is enforced through `created_by`. After any schema
+change, regenerate types with `npm run db:types`.

@@ -24,10 +24,26 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: communities } = await supabase
-    .from("communities")
-    .select("id, slug, name, description")
+  const { data: ecosystems } = await supabase
+    .from("ecosystems")
+    .select("id, name, type, vision, mission, description")
     .order("created_at", { ascending: false });
+
+  const { data: spaces } = await supabase
+    .from("spaces")
+    .select("id, ecosystem_id, name, slug, type, description")
+    .order("created_at", { ascending: false });
+
+  const { data: memberships } = await supabase
+    .from("space_memberships")
+    .select("space_id, role");
+
+  const roleBySpace = new Map(
+    (memberships ?? []).map((membership) => [
+      membership.space_id,
+      membership.role,
+    ]),
+  );
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-6">
@@ -47,30 +63,69 @@ export default async function DashboardPage() {
 
       <section className="mt-8 space-y-4">
         <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Communities
+          Ecosystems
         </h2>
-        {communities && communities.length > 0 ? (
-          communities.map((community) => (
-            <Card key={community.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-lg">{community.name}</CardTitle>
-                  <Badge variant="secondary">{community.slug}</Badge>
-                </div>
-                <CardDescription>{community.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex items-center gap-2 text-sm">
-                <Link href={`/communities/${community.slug}`}>Open</Link>
-              </CardContent>
-            </Card>
-          ))
+        {ecosystems && ecosystems.length > 0 ? (
+          ecosystems.map((ecosystem) => {
+            const ecosystemSpaces = (spaces ?? []).filter(
+              (space) => space.ecosystem_id === ecosystem.id,
+            );
+            return (
+              <Card key={ecosystem.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-lg">{ecosystem.name}</CardTitle>
+                    <Badge variant="secondary">{ecosystem.type}</Badge>
+                  </div>
+                  {ecosystem.vision ? (
+                    <CardDescription>{ecosystem.vision}</CardDescription>
+                  ) : (
+                    <CardDescription>{ecosystem.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {ecosystemSpaces.length > 0 ? (
+                    ecosystemSpaces.map((space) => (
+                      <div
+                        key={space.id}
+                        className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">
+                            {space.name}
+                            {roleBySpace.has(space.id) ? (
+                              <Badge variant="outline" className="ml-2">
+                                {roleBySpace.get(space.id)}
+                              </Badge>
+                            ) : null}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {space.type}
+                            {space.description ? ` · ${space.description}` : ""}
+                          </p>
+                        </div>
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/spaces/${space.slug ?? space.id}`}>
+                            Open
+                          </Link>
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No spaces yet.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">No communities yet</CardTitle>
+              <CardTitle className="text-lg">No ecosystems yet</CardTitle>
               <CardDescription>
-                Create one from Studio, or wait for the next sprint to add
-                community tooling.
+                The next sprint increment adds the create flow.
               </CardDescription>
             </CardHeader>
           </Card>

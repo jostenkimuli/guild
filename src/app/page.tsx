@@ -31,8 +31,9 @@ export default async function Home() {
           Virtual communities solving real-world problems, at scale.
         </h1>
         <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-          TheGuild is an educational ecosystem where large communities organize
-          around problems, form project guilds, and ship solutions together.
+          TheGuild is an educational ecosystem where schools create classrooms,
+          learners form teams, and teams solve real challenges — guided by
+          mentors, at any scale.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           {user ? (
@@ -45,7 +46,7 @@ export default async function Home() {
                 <Link href="/login">Get started</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href="/login">Explore communities</Link>
+                <Link href="/login">Explore ecosystems</Link>
               </Button>
             </>
           )}

@@ -34,124 +34,40 @@ export type Database = {
   }
   public: {
     Tables: {
-      communities: {
+      ecosystems: {
         Row: {
           created_at: string
           created_by: string
-          description: string
+          description: string | null
           id: string
-          mission: string
+          mission: string | null
           name: string
-          slug: string
-          updated_at: string
+          type: Database["public"]["Enums"]["ecosystem_type"]
+          vision: string | null
         }
         Insert: {
           created_at?: string
           created_by: string
-          description?: string
+          description?: string | null
           id?: string
-          mission?: string
+          mission?: string | null
           name: string
-          slug: string
-          updated_at?: string
+          type?: Database["public"]["Enums"]["ecosystem_type"]
+          vision?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string
-          description?: string
+          description?: string | null
           id?: string
-          mission?: string
+          mission?: string | null
           name?: string
-          slug?: string
-          updated_at?: string
+          type?: Database["public"]["Enums"]["ecosystem_type"]
+          vision?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "communities_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_members: {
-        Row: {
-          community_id: string
-          joined_at: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          community_id: string
-          joined_at?: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          community_id?: string
-          joined_at?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_members_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      problems: {
-        Row: {
-          community_id: string
-          created_at: string
-          created_by: string
-          description: string
-          id: string
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          community_id: string
-          created_at?: string
-          created_by: string
-          description?: string
-          id?: string
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          community_id?: string
-          created_at?: string
-          created_by?: string
-          description?: string
-          id?: string
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "problems_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "problems_created_by_fkey"
+            foreignKeyName: "ecosystems_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -189,50 +105,89 @@ export type Database = {
         }
         Relationships: []
       }
-      projects: {
+      space_memberships: {
+        Row: {
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["user_space_role"]
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role: Database["public"]["Enums"]["user_space_role"]
+          space_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["user_space_role"]
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_memberships_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spaces: {
         Row: {
           created_at: string
           created_by: string
+          description: string | null
+          ecosystem_id: string
           id: string
           name: string
-          problem_id: string
-          status: string
-          summary: string
-          updated_at: string
+          slug: string | null
+          type: Database["public"]["Enums"]["space_type"]
         }
         Insert: {
           created_at?: string
           created_by: string
+          description?: string | null
+          ecosystem_id: string
           id?: string
           name: string
-          problem_id: string
-          status?: string
-          summary?: string
-          updated_at?: string
+          slug?: string | null
+          type?: Database["public"]["Enums"]["space_type"]
         }
         Update: {
           created_at?: string
           created_by?: string
+          description?: string | null
+          ecosystem_id?: string
           id?: string
           name?: string
-          problem_id?: string
-          status?: string
-          summary?: string
-          updated_at?: string
+          slug?: string | null
+          type?: Database["public"]["Enums"]["space_type"]
         }
         Relationships: [
           {
-            foreignKeyName: "projects_created_by_fkey"
+            foreignKeyName: "spaces_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "projects_problem_id_fkey"
-            columns: ["problem_id"]
+            foreignKeyName: "spaces_ecosystem_id_fkey"
+            columns: ["ecosystem_id"]
             isOneToOne: false
-            referencedRelation: "problems"
+            referencedRelation: "ecosystems"
             referencedColumns: ["id"]
           },
         ]
@@ -245,7 +200,18 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      ecosystem_type:
+        | "school"
+        | "university"
+        | "organization"
+        | "macro_alliance"
+      space_type: "classroom" | "innovation_hub" | "project_group"
+      user_space_role:
+        | "teacher"
+        | "learner"
+        | "mentor"
+        | "collaborator"
+        | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -375,7 +341,22 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      ecosystem_type: [
+        "school",
+        "university",
+        "organization",
+        "macro_alliance",
+      ],
+      space_type: ["classroom", "innovation_hub", "project_group"],
+      user_space_role: [
+        "teacher",
+        "learner",
+        "mentor",
+        "collaborator",
+        "admin",
+      ],
+    },
   },
 } as const
 

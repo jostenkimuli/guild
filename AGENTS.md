@@ -50,4 +50,14 @@ Agile docs live in `docs/agile/`: `WORKING_AGREEMENTS.md` (norms),
 `DEFINITION_OF_DONE.md` (DoD), `PRODUCT_BACKLOG.md` (stories),
 `SPRINT_PLAN.md` (current sprint). Respect the DoD before calling work done.
 
+## Domain model
+
+The product is modeled as: Ecosystem → Space → (Content / Challenge → Team →
+Project), with Users holding per-space roles (Teacher/Learner/Mentor/Industry
+Partner). The full blueprint is `docs/CONCEPTUAL_MODEL.md` — keep schema,
+naming, and UI in lockstep with it. Roadmap → sprint mapping lives in
+`SPRINT_PLAN.md`. As of Sprint 1 the schema has `ecosystems`, `spaces`, and
+`space_memberships`; the old `communities`/`problems`/`projects` tables are
+gone and return redesigned in Sprints 5/6.
+
 <!-- END:theguild-project-rules -->

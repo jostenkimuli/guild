@@ -1,5 +1,5 @@
 -- Seed data for local development.
--- Creates a demo user and a working community with a problem and project.
+-- Creates a demo user and a working ecosystem with a classroom space.
 
 insert into auth.users (
   instance_id,
@@ -53,41 +53,32 @@ on conflict (id) do nothing;
 
 -- The on_auth_user_created trigger creates the matching profile row.
 
-insert into public.communities (slug, name, description, mission, created_by)
+insert into public.ecosystems (name, vision, mission, description, type, created_by)
 select
-  'civic-labs',
-  'Civic Labs',
-  'A community prototyping public-service improvements for local government.',
+  'Civic Labs Academy',
+  'A generation of citizens who fix public services from the inside.',
   'Turn resident ideas into testable public-service prototypes.',
+  'A school ecosystem that trains learners by working on real civic problems.',
+  'school',
   id
 from public.profiles
 where id = '11111111-1111-1111-1111-111111111111'
-on conflict (slug) do nothing;
-
-insert into public.community_members (community_id, user_id, role)
-select id, '11111111-1111-1111-1111-111111111111', 'owner'
-from public.communities
-where slug = 'civic-labs'
-on conflict (community_id, user_id) do nothing;
-
-insert into public.problems (community_id, title, description, status, created_by)
-select
-  id,
-  'Long queues at the permit office',
-  'Residents wait weeks for building permits. How might we cut the cycle time in half?',
-  'open',
-  '11111111-1111-1111-1111-111111111111'
-from public.communities
-where slug = 'civic-labs'
 on conflict do nothing;
 
-insert into public.projects (problem_id, name, summary, status, created_by)
+insert into public.spaces (ecosystem_id, name, slug, description, type, created_by)
 select
-  p.id,
-  'Permit tracker',
-  'A lightweight open tracker that shows every permit request and its status in real time.',
-  'active',
+  e.id,
+  'Civic Prototyping Class',
+  'civic-labs',
+  'Where learners team up to prototype improvements for local government.',
+  'classroom',
   '11111111-1111-1111-1111-111111111111'
-from public.problems as p
-where p.title = 'Long queues at the permit office'
+from public.ecosystems as e
+where e.name = 'Civic Labs Academy'
 on conflict do nothing;
+
+insert into public.space_memberships (space_id, user_id, role)
+select s.id, '11111111-1111-1111-1111-111111111111', 'teacher'
+from public.spaces as s
+where s.slug = 'civic-labs'
+on conflict (space_id, user_id) do nothing;
