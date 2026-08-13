@@ -35,6 +35,11 @@ export default function LoginPage() {
     const supabase = createClient();
 
     if (mode === "signin") {
+      if (!email || password.length < 6) {
+        setMessage("Enter a valid email and a password of at least 6 characters.");
+        setLoading(false);
+        return;
+      }
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -66,6 +71,11 @@ export default function LoginPage() {
     const code = invitationCode.trim().toUpperCase();
     if (!code) {
       setMessage("An invitation code is required to join a space.");
+      setLoading(false);
+      return;
+    }
+    if (!email || password.length < 6 || fullName.trim().length < 2) {
+      setMessage("Enter a valid email, a password of at least 6 characters, and your full name.");
       setLoading(false);
       return;
     }
@@ -145,6 +155,9 @@ export default function LoginPage() {
                   <Input
                     id="full_name"
                     placeholder="Your name"
+                    required
+                    minLength={2}
+                    maxLength={120}
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
                   />
@@ -155,6 +168,10 @@ export default function LoginPage() {
                     id="invitation_code"
                     placeholder="e.g. CIVICLABS"
                     required
+                    minLength={4}
+                    maxLength={20}
+                    pattern="[A-Za-z0-9]+"
+                    autoCapitalize="characters"
                     value={invitationCode}
                     onChange={(event) => setInvitationCode(event.target.value)}
                   />

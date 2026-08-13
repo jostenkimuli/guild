@@ -7,31 +7,6 @@
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       ecosystem_staff: {
@@ -169,6 +144,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string
+          can_approve_ecosystem_admins: boolean
           created_at: string
           display_name: string
           id: string
@@ -181,6 +157,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string
+          can_approve_ecosystem_admins?: boolean
           created_at?: string
           display_name?: string
           id: string
@@ -193,6 +170,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string
+          can_approve_ecosystem_admins?: boolean
           created_at?: string
           display_name?: string
           id?: string
@@ -333,6 +311,7 @@ export type Database = {
         | "ecosystem_admin"
         | "space_admin"
         | "member"
+        | "super_admin"
       profile_status: "pending" | "approved" | "rejected"
       space_type: "classroom" | "innovation_hub" | "project_group"
       user_space_role:
@@ -466,9 +445,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       ecosystem_staff_role: ["ecosystem_admin", "space_admin"],
@@ -483,6 +459,7 @@ export const Constants = {
         "ecosystem_admin",
         "space_admin",
         "member",
+        "super_admin",
       ],
       profile_status: ["pending", "approved", "rejected"],
       space_type: ["classroom", "innovation_hub", "project_group"],

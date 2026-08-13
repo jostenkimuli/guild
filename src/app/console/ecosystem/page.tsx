@@ -42,9 +42,8 @@ export default async function EcosystemConsolePage() {
               </Badge>
             </CardTitle>
             <CardDescription>
-              Ecosystem creation is disabled until the program admin approves
-              your account. You will be able to create your ecosystem here once
-              approved.
+              Ecosystem creation is disabled until your account is approved.
+              You will be able to create your ecosystem here once approved.
             </CardDescription>
           </CardHeader>
         </Card>

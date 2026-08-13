@@ -18,6 +18,7 @@ type ProfileRow = {
   role: Database["public"]["Enums"]["profile_role"];
   status: Database["public"]["Enums"]["profile_status"];
   must_change_password: boolean;
+  can_approve_ecosystem_admins: boolean;
 };
 
 async function getProfile(): Promise<ProfileRow | null> {
@@ -28,10 +29,34 @@ async function getProfile(): Promise<ProfileRow | null> {
   if (!user) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("id, role, status, must_change_password")
+    .select(
+      "id, role, status, must_change_password, can_approve_ecosystem_admins",
+    )
     .eq("id", user.id)
     .single();
   return data;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateAccountFields(
+  email: string,
+  tempPassword: string,
+  fullName: string,
+): string | null {
+  if (!email || !tempPassword || !fullName) {
+    return "Full name, email and a temporary password are required.";
+  }
+  if (!EMAIL_RE.test(email)) {
+    return "Enter a valid email address.";
+  }
+  if (tempPassword.length < 6) {
+    return "Temporary password must be at least 6 characters.";
+  }
+  if (fullName.length < 2 || fullName.length > 120) {
+    return "Full name must be between 2 and 120 characters.";
+  }
+  return null;
 }
 
 function slugify(input: string) {
@@ -54,7 +79,8 @@ function generateCode(length = 8) {
 }
 
 // ------------------------------------------------------------
-// Program admin: create an ecosystem-admin account (pending)
+// Program admin (approved) or super admin: create an
+// ecosystem-admin account (pending)
 // ------------------------------------------------------------
 
 export async function createEcosystemAdmin(
@@ -64,13 +90,19 @@ export async function createEcosystemAdmin(
   const profile = await getProfile();
   if (!profile) return { success: false, error: "Not signed in." };
 
+  const canCreate =
+    profile.role === "super_admin" ||
+    (profile.role === "program_admin" && profile.status === "approved");
+  if (!canCreate) {
+    return { success: false, error: "Only an approved program admin can create ecosystem admins." };
+  }
+
   const email = String(formData.get("email") ?? "").trim();
   const tempPassword = String(formData.get("temp_password") ?? "");
   const fullName = String(formData.get("full_name") ?? "").trim();
 
-  if (!email || !tempPassword) {
-    return { success: false, error: "Email and a temporary password are required." };
-  }
+  const invalid = validateAccountFields(email, tempPassword, fullName);
+  if (invalid) return { success: false, error: invalid };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_create_user", {
@@ -87,16 +119,110 @@ export async function createEcosystemAdmin(
 }
 
 // ------------------------------------------------------------
-// Program admin: approve a pending ecosystem-admin account
+// Super admin: create a program-admin account (pending)
+// ------------------------------------------------------------
+
+export async function createProgramAdmin(
+  _: ConsoleActionState,
+  formData: FormData,
+): Promise<ConsoleActionState> {
+  const profile = await getProfile();
+  if (!profile) return { success: false, error: "Not signed in." };
+  if (profile.role !== "super_admin" || profile.status !== "approved") {
+    return { success: false, error: "Only the super admin can create program admins." };
+  }
+
+  const email = String(formData.get("email") ?? "").trim();
+  const tempPassword = String(formData.get("temp_password") ?? "");
+  const fullName = String(formData.get("full_name") ?? "").trim();
+
+  const invalid = validateAccountFields(email, tempPassword, fullName);
+  if (invalid) return { success: false, error: invalid };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_create_user", {
+    p_email: email,
+    p_temp_password: tempPassword,
+    p_role: "program_admin",
+    p_full_name: fullName,
+    p_ecosystem_id: undefined,
+    p_status: "pending",
+  });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+// ------------------------------------------------------------
+// Super admin: approve a pending program-admin account
+// ------------------------------------------------------------
+
+export async function approveProgramAdmin(formData: FormData) {
+  const profile = await getProfile();
+  const userId = String(formData.get("user_id") ?? "");
+
+  if (!profile || profile.role !== "super_admin" || profile.status !== "approved") {
+    redirect("/console/super?error=unauthorized");
+  }
+  if (!userId) redirect("/console/super?error=missing-id");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: "approved" })
+    .eq("id", userId)
+    .eq("role", "program_admin");
+
+  if (error) redirect(`/console/super?error=${encodeURIComponent(error.message)}`);
+  redirect("/console/super?approved=1");
+}
+
+// ------------------------------------------------------------
+// Super admin: delegate (or revoke) ecosystem-admin approvals to
+// a program admin. All ecosystem-admin approvals start with the
+// super admin; a delegated program admin approves them directly.
+// ------------------------------------------------------------
+
+export async function setProgramAdminDelegation(formData: FormData) {
+  const profile = await getProfile();
+  const userId = String(formData.get("user_id") ?? "");
+  const delegated = formData.get("delegated") === "true";
+
+  if (!profile || profile.role !== "super_admin" || profile.status !== "approved") {
+    redirect("/console/super?error=unauthorized");
+  }
+  if (!userId) redirect("/console/super?error=missing-id");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ can_approve_ecosystem_admins: delegated })
+    .eq("id", userId)
+    .eq("role", "program_admin");
+
+  if (error) redirect(`/console/super?error=${encodeURIComponent(error.message)}`);
+  redirect(`/console/super?delegated=${delegated ? 1 : 0}`);
+}
+
+// ------------------------------------------------------------
+// Program admin (delegated) or super admin: approve an ecosystem admin
 // ------------------------------------------------------------
 
 export async function approveEcosystemAdmin(formData: FormData) {
   const profile = await getProfile();
   const userId = String(formData.get("user_id") ?? "");
 
-  if (!profile || profile.role !== "program_admin" || profile.status !== "approved") {
+  const delegated =
+    profile?.role === "program_admin" &&
+    profile.status === "approved" &&
+    profile.can_approve_ecosystem_admins;
+  const isSuper =
+    profile?.role === "super_admin" && profile.status === "approved";
+
+  if (!delegated && !isSuper) {
     redirect("/console/program?error=unauthorized");
   }
+  if (!userId) redirect("/console/program?error=missing-id");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -105,7 +231,11 @@ export async function approveEcosystemAdmin(formData: FormData) {
     .eq("id", userId)
     .eq("role", "ecosystem_admin");
 
-  if (error) redirect(`/console/program?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    const target = isSuper ? "/console/super" : "/console/program";
+    redirect(`${target}?error=${encodeURIComponent(error.message)}`);
+  }
+  if (isSuper) redirect("/console/super?approved=1");
   redirect("/console/program?approved=1");
 }
 
@@ -121,7 +251,9 @@ export async function createEcosystem(
   if (!profile) return { success: false, error: "Not signed in." };
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { success: false, error: "Name is required." };
+  if (name.length < 2 || name.length > 120) {
+    return { success: false, error: "Name must be between 2 and 120 characters." };
+  }
 
   const type = String(formData.get("type") ?? "school") as Database["public"]["Enums"]["ecosystem_type"];
 
@@ -134,6 +266,18 @@ export async function createEcosystem(
     headteacher_email: String(formData.get("headteacher_email") ?? "").trim(),
     school_location: String(formData.get("school_location") ?? "").trim(),
   };
+
+  for (const [field, value] of Object.entries(meta)) {
+    if (value.length > 120) {
+      return { success: false, error: `${field} must be 120 characters or fewer.` };
+    }
+  }
+  if (meta.director_email && !EMAIL_RE.test(meta.director_email)) {
+    return { success: false, error: "Director email is not valid." };
+  }
+  if (meta.headteacher_email && !EMAIL_RE.test(meta.headteacher_email)) {
+    return { success: false, error: "Headteacher email is not valid." };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.from("ecosystems").insert({
@@ -166,9 +310,11 @@ export async function createSpaceAdmin(
   const fullName = String(formData.get("full_name") ?? "").trim();
   const ecosystemId = String(formData.get("ecosystem_id") ?? "");
 
-  if (!email || !tempPassword || !ecosystemId) {
-    return { success: false, error: "Email, temporary password and ecosystem are required." };
+  if (!ecosystemId) {
+    return { success: false, error: "Ecosystem is required." };
   }
+  const invalid = validateAccountFields(email, tempPassword, fullName);
+  if (invalid) return { success: false, error: invalid };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_create_user", {
@@ -197,13 +343,22 @@ export async function createSpace(
 
   const ecosystemId = String(formData.get("ecosystem_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  if (!ecosystemId || !name) {
-    return { success: false, error: "Ecosystem and space name are required." };
+  if (!ecosystemId) {
+    return { success: false, error: "Ecosystem is required." };
+  }
+  if (name.length < 2 || name.length > 120) {
+    return { success: false, error: "Space name must be between 2 and 120 characters." };
   }
 
   const type = String(formData.get("type") ?? "classroom") as Database["public"]["Enums"]["space_type"];
   const slug =
     String(formData.get("slug") ?? "").trim() || slugify(name) || null;
+  if (slug && !/^[a-z0-9][a-z0-9-]{0,59}$/.test(slug)) {
+    return {
+      success: false,
+      error: "Slug may only contain lowercase letters, numbers and dashes.",
+    };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.from("spaces").insert({
@@ -244,6 +399,12 @@ export async function createInvitationCode(
 
   if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) {
     return { success: false, error: "Max uses must be a positive whole number." };
+  }
+  if (expiresInDays && (!Number.isInteger(Number(expiresInDays)) || Number(expiresInDays) < 1)) {
+    return {
+      success: false,
+      error: "Validity must be a positive whole number of days.",
+    };
   }
 
   const code = generateCode();

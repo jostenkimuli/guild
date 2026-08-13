@@ -63,7 +63,7 @@ should stay in lockstep with it.
 
 | Model entity | Current table | Notes |
 | ------------ | ------------- | ----- |
-| User | `profiles` | plus platform-level `role` + approval `status` + `must_change_password` (Sprint 1 admin layer) |
+| User | `profiles` | platform `role` (`super_admin`/`program_admin`/`ecosystem_admin`/`space_admin`/`member`), approval `status`, `must_change_password`, `can_approve_ecosystem_admins` (delegation) |
 | Ecosystem | `ecosystems` | Sprint 1; `raw_ecosystem_meta_data` jsonb for school metadata |
 | Ecosystem staff | `ecosystem_staff` | Sprint 1; who administers an ecosystem |
 | Space | `spaces` | Sprint 1 (replaces old `communities`) |
@@ -72,5 +72,18 @@ should stay in lockstep with it.
 | Content | — | new `content` table (Sprint 2) |
 | Challenge | — | returns as redesigned table (Sprint 5) |
 | Project | — | returns as redesigned table (Sprint 6) |
+
+### Approval chain (Sprint 2)
+
+- **Super admin** creates program admins (pending) and approves them.
+- **Program admin** (approved) creates ecosystem admins (pending).
+- Ecosystem-admin approvals always land with the **super admin**, who can
+  approve directly or delegate to a program admin
+  (`profiles.can_approve_ecosystem_admins`); a delegated program admin then
+  approves them.
+- **Ecosystem admin** (approved) creates their ecosystem and space admins
+  (auto-approved).
+- **Space admin** creates spaces and invitation codes; signup with a code adds
+  the subscriber as a member.
 
 All migrations land in the sprint that needs them (see `SPRINT_PLAN.md`).

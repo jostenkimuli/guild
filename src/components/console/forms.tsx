@@ -8,6 +8,7 @@ import {
   createEcosystem,
   createEcosystemAdmin,
   createInvitationCode,
+  createProgramAdmin,
   createSpace,
   createSpaceAdmin,
 } from "@/app/actions/console";
@@ -69,76 +70,102 @@ function useRefreshOnSuccess(state: ConsoleActionState) {
   }, [state, router]);
 }
 
-export function CreateEcosystemAdminForm() {
-  const [state, action, pending] = useActionState(createEcosystemAdmin, {
+function CreateAdminAccountForm({
+  idPrefix,
+  action,
+  actionLabel,
+  hint,
+  ecosystemId,
+}: {
+  idPrefix: string;
+  action: (
+    _: ConsoleActionState,
+    formData: FormData,
+  ) => Promise<ConsoleActionState>;
+  actionLabel: string;
+  hint: string;
+  ecosystemId?: string;
+}) {
+  const [state, formAction, pending] = useActionState(action, {
     success: false,
   });
   useRefreshOnSuccess(state);
 
   return (
-    <form action={action} className="space-y-4">
-      <Field id="ea-full_name" label="Full name">
-        <Input id="ea-full_name" name="full_name" autoComplete="name" />
-      </Field>
-      <Field id="ea-email" label="Email">
-        <Input id="ea-email" name="email" type="email" required autoComplete="off" />
-      </Field>
-      <Field
-        id="ea-temp_password"
-        label="Temporary password"
-        hint="The account is created as pending and must change this password on first login."
-      >
+    <form action={formAction} className="space-y-4">
+      {ecosystemId ? (
+        <input type="hidden" name="ecosystem_id" value={ecosystemId} />
+      ) : null}
+      <Field id={`${idPrefix}-full_name`} label="Full name">
         <Input
-          id="ea-temp_password"
+          id={`${idPrefix}-full_name`}
+          name="full_name"
+          autoComplete="name"
+          required
+          minLength={2}
+          maxLength={120}
+        />
+      </Field>
+      <Field id={`${idPrefix}-email`} label="Email">
+        <Input
+          id={`${idPrefix}-email`}
+          name="email"
+          type="email"
+          required
+          maxLength={120}
+          autoComplete="off"
+        />
+      </Field>
+      <Field id={`${idPrefix}-temp_password`} label="Temporary password" hint={hint}>
+        <Input
+          id={`${idPrefix}-temp_password`}
           name="temp_password"
           type="password"
           required
           minLength={6}
+          maxLength={72}
           autoComplete="new-password"
         />
       </Field>
       <Feedback state={state} />
       <Button type="submit" disabled={pending}>
-        Create ecosystem admin
+        {actionLabel}
       </Button>
     </form>
   );
 }
 
-export function CreateSpaceAdminForm({ ecosystemId }: { ecosystemId: string }) {
-  const [state, action, pending] = useActionState(createSpaceAdmin, {
-    success: false,
-  });
-  useRefreshOnSuccess(state);
-
+export function CreateProgramAdminForm() {
   return (
-    <form action={action} className="space-y-4">
-      <input type="hidden" name="ecosystem_id" value={ecosystemId} />
-      <Field id="sa-full_name" label="Full name">
-        <Input id="sa-full_name" name="full_name" autoComplete="name" />
-      </Field>
-      <Field id="sa-email" label="Email">
-        <Input id="sa-email" name="email" type="email" required autoComplete="off" />
-      </Field>
-      <Field
-        id="sa-temp_password"
-        label="Temporary password"
-        hint="The account can sign in immediately and must set its own password on first login."
-      >
-        <Input
-          id="sa-temp_password"
-          name="temp_password"
-          type="password"
-          required
-          minLength={6}
-          autoComplete="new-password"
-        />
-      </Field>
-      <Feedback state={state} />
-      <Button type="submit" disabled={pending}>
-        Create space admin
-      </Button>
-    </form>
+    <CreateAdminAccountForm
+      idPrefix="pa"
+      action={createProgramAdmin}
+      actionLabel="Create program admin"
+      hint="The account starts pending and must be approved by the super admin before it can create ecosystem admins."
+    />
+  );
+}
+
+export function CreateEcosystemAdminForm() {
+  return (
+    <CreateAdminAccountForm
+      idPrefix="ea"
+      action={createEcosystemAdmin}
+      actionLabel="Create ecosystem admin"
+      hint="The account starts pending. Approval is decided by the super admin, or by the program admin if the super admin has delegated approval to them."
+    />
+  );
+}
+
+export function CreateSpaceAdminForm({ ecosystemId }: { ecosystemId: string }) {
+  return (
+    <CreateAdminAccountForm
+      idPrefix="sa"
+      action={createSpaceAdmin}
+      actionLabel="Create space admin"
+      hint="The account can sign in immediately and must set its own password on first login."
+      ecosystemId={ecosystemId}
+    />
   );
 }
 
@@ -152,7 +179,13 @@ export function CreateEcosystemForm() {
     <form action={action} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="eco-name" label="Name">
-          <Input id="eco-name" name="name" required />
+          <Input
+            id="eco-name"
+            name="name"
+            required
+            minLength={2}
+            maxLength={120}
+          />
         </Field>
         <Field id="eco-type" label="Type">
           <select id="eco-type" name="type" className={selectClass} defaultValue="school">
@@ -164,39 +197,39 @@ export function CreateEcosystemForm() {
         </Field>
       </div>
       <Field id="eco-vision" label="Vision">
-        <Textarea id="eco-vision" name="vision" />
+        <Textarea id="eco-vision" name="vision" maxLength={1000} />
       </Field>
       <Field id="eco-mission" label="Mission">
-        <Textarea id="eco-mission" name="mission" />
+        <Textarea id="eco-mission" name="mission" maxLength={1000} />
       </Field>
       <Field id="eco-description" label="Description">
-        <Textarea id="eco-description" name="description" />
+        <Textarea id="eco-description" name="description" maxLength={1000} />
       </Field>
 
       <div className="space-y-3 rounded-lg border p-4">
         <p className="text-sm font-medium">School details (metadata)</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field id="m-director_name" label="Director name">
-            <Input id="m-director_name" name="director_name" />
+            <Input id="m-director_name" name="director_name" maxLength={120} />
           </Field>
           <Field id="m-director_contact" label="Director contact">
-            <Input id="m-director_contact" name="director_contact" />
+            <Input id="m-director_contact" name="director_contact" maxLength={120} />
           </Field>
           <Field id="m-director_email" label="Director email">
-            <Input id="m-director_email" name="director_email" type="email" />
+            <Input id="m-director_email" name="director_email" type="email" maxLength={120} />
           </Field>
           <Field id="m-headteacher_name" label="Headteacher name">
-            <Input id="m-headteacher_name" name="headteacher_name" />
+            <Input id="m-headteacher_name" name="headteacher_name" maxLength={120} />
           </Field>
           <Field id="m-headteacher_contact" label="Headteacher contact">
-            <Input id="m-headteacher_contact" name="headteacher_contact" />
+            <Input id="m-headteacher_contact" name="headteacher_contact" maxLength={120} />
           </Field>
           <Field id="m-headteacher_email" label="Headteacher email">
-            <Input id="m-headteacher_email" name="headteacher_email" type="email" />
+            <Input id="m-headteacher_email" name="headteacher_email" type="email" maxLength={120} />
           </Field>
           <div className="sm:col-span-2">
             <Field id="m-school_location" label="School location">
-              <Input id="m-school_location" name="school_location" />
+              <Input id="m-school_location" name="school_location" maxLength={120} />
             </Field>
           </div>
         </div>
@@ -221,7 +254,13 @@ export function CreateSpaceForm({ ecosystemId }: { ecosystemId: string }) {
       <input type="hidden" name="ecosystem_id" value={ecosystemId} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="sp-name" label="Name">
-          <Input id="sp-name" name="name" required />
+          <Input
+            id="sp-name"
+            name="name"
+            required
+            minLength={2}
+            maxLength={120}
+          />
         </Field>
         <Field id="sp-type" label="Type">
           <select id="sp-type" name="type" className={selectClass} defaultValue="classroom">
@@ -232,10 +271,16 @@ export function CreateSpaceForm({ ecosystemId }: { ecosystemId: string }) {
         </Field>
       </div>
       <Field id="sp-slug" label="Slug" hint="Optional; generated from the name if left blank.">
-        <Input id="sp-slug" name="slug" />
+        <Input
+          id="sp-slug"
+          name="slug"
+          maxLength={60}
+          pattern="[a-z0-9][a-z0-9-]*"
+          placeholder="my-classroom"
+        />
       </Field>
       <Field id="sp-description" label="Description">
-        <Textarea id="sp-description" name="description" />
+        <Textarea id="sp-description" name="description" maxLength={1000} />
       </Field>
       <Feedback state={state} />
       <Button type="submit" disabled={pending}>
@@ -265,10 +310,26 @@ export function InviteCodeForm({ spaceId }: { spaceId: string }) {
           </select>
         </Field>
         <Field id="ic-max_uses" label="Max uses" hint="Blank = unlimited">
-          <Input id="ic-max_uses" name="max_uses" type="number" min={1} inputMode="numeric" />
+          <Input
+            id="ic-max_uses"
+            name="max_uses"
+            type="number"
+            min={1}
+            max={1000000}
+            step={1}
+            inputMode="numeric"
+          />
         </Field>
         <Field id="ic-expires" label="Valid for (days)" hint="Blank = never expires">
-          <Input id="ic-expires" name="expires_in_days" type="number" min={1} inputMode="numeric" />
+          <Input
+            id="ic-expires"
+            name="expires_in_days"
+            type="number"
+            min={1}
+            max={3650}
+            step={1}
+            inputMode="numeric"
+          />
         </Field>
       </div>
       <Feedback state={state} />

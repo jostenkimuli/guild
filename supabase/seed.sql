@@ -4,10 +4,13 @@
 
 -- ------------------------------------------------------------
 -- demo users
---   demo       program admin      (super admin: creates + approves ecosystem admins)
---   ecoadmin   ecosystem admin    (owns Civic Labs Academy)
---   spaceadmin space admin        (owns Civic Prototyping Class)
---   learner    member             (joined via an invitation code)
+--   superadmin  super admin       (top level: creates + approves program admins,
+--                                  approves ecosystem admins, delegates approvals)
+--   demo        program admin    (creates ecosystem admins; approves them only
+--                                  when the super admin delegates that authority)
+--   ecoadmin    ecosystem admin  (owns Civic Labs Academy)
+--   spaceadmin  space admin      (owns Civic Prototyping Class)
+--   learner     member           (joined via an invitation code)
 -- ------------------------------------------------------------
 
 insert into auth.users (
@@ -35,6 +38,30 @@ insert into auth.users (
   is_anonymous
 )
 values (
+  '00000000-0000-0000-0000-000000000000',
+  '55555555-5555-5555-5555-555555555555',
+  'authenticated',
+  'authenticated',
+  'superadmin@theguild.dev',
+  crypt('superadmin-password', gen_salt('bf')),
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '',
+  null,
+  '',
+  '',
+  '',
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"superadmin","full_name":"Super Admin","role":"super_admin","status":"approved","must_change_password":false}',
+  now(),
+  now(),
+  false,
+  false
+),
+(
   '00000000-0000-0000-0000-000000000000',
   '11111111-1111-1111-1111-111111111111',
   'authenticated',

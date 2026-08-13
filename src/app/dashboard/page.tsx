@@ -56,13 +56,15 @@ export default async function DashboardPage() {
   );
 
   const consoleLinks =
-    profile?.role === "program_admin"
-      ? [{ href: "/console/program", label: "Program admin console" }]
-      : profile?.role === "ecosystem_admin"
-        ? [{ href: "/console/ecosystem", label: "Ecosystem console" }]
-        : profile?.role === "space_admin"
-          ? [{ href: "/console/space", label: "Space admin console" }]
-          : [];
+    profile?.role === "super_admin"
+      ? [{ href: "/console/super", label: "Super admin console" }]
+      : profile?.role === "program_admin"
+        ? [{ href: "/console/program", label: "Program admin console" }]
+        : profile?.role === "ecosystem_admin"
+          ? [{ href: "/console/ecosystem", label: "Ecosystem console" }]
+          : profile?.role === "space_admin"
+            ? [{ href: "/console/space", label: "Space admin console" }]
+            : [];
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-6">

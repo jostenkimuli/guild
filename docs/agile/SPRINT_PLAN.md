@@ -72,20 +72,31 @@ the container layer of the product.
   ecosystem staff and space-admin memberships; RLS + grants. Backend flow
   E2E-verified via the API (pending gate, approval, staff/membership
   auto-assign, code redemption).
+- **Super admin layer (migrations `20260814000000` + `20260814000001`):**
+  `super_admin` role; `profiles.can_approve_ecosystem_admins` delegation flag;
+  `admin_create_user` updated (super admin → program admin, program admin →
+  ecosystem admin, ecosystem admin → space admin; program/ecosystem admins
+  always created pending); update policies scoped to the super admin and to a
+  *delegated* program admin; trigger locking `role`/`status`/delegation
+  columns. Form inputs validated on the server and in the browser.
 
 ### UI work — DONE
 - Dashboard reads ecosystems + spaces + memberships and is role-aware with
   console links (done)
-- Admin onboarding flow: `/console/program` (create + approve ecosystem
-  admins), `/console/ecosystem` (create ecosystem with school metadata +
-  space admins), `/console/space` (create spaces + invitation codes),
-  server actions in `src/app/actions/console.ts`, client forms in
+- Admin onboarding flow: `/console/super` (create + approve program admins,
+  delegate/revoke ecosystem-admin approvals, approve ecosystem admins),
+  `/console/program` (create ecosystem admins; approve only when delegated),
+  `/console/ecosystem` (create ecosystem with school metadata + space admins),
+  `/console/space` (create spaces + invitation codes), server actions in
+  `src/app/actions/console.ts`, client forms in
   `src/components/console/forms.tsx`
 - Signup requires an invitation code (`/login` validates via
   `invitation_code_info`); admin-created accounts are redirected to
   `/setup-password` on first login
 - `proxy.ts` protects `/console` + `/setup-password`; authenticated
-  rendering verified for all four roles and the first-login redirect
+  rendering verified for all five roles and the first-login redirect
+- Form validation added throughout: required fields, email format, name and
+  slug patterns, password lengths, numeric ranges (client + server side)
 
 ### DoD notes
 - Fresh `db:reset` passes; `db:types` regenerated and committed.

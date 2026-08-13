@@ -48,14 +48,17 @@ Demo accounts (seeded):
 
 | Role | Email | Password | In the seed |
 | ---- | ----- | -------- | ----------- |
-| Program admin | `demo@theguild.dev` | `demo-password` | Creates and approves ecosystem-admin accounts |
+| Super admin | `superadmin@theguild.dev` | `superadmin-password` | Top level: creates + approves program admins, approves ecosystem admins, delegates approvals |
+| Program admin | `demo@theguild.dev` | `demo-password` | Creates ecosystem admins; approves them once the super admin delegates that authority |
 | Ecosystem admin | `ecoadmin@theguild.dev` | `ecoadmin-password` | Owns "Civic Labs Academy"; creates space admins |
 | Space admin | `spaceadmin@theguild.dev` | `spaceadmin-password` | Owns "Civic Prototyping Class"; generates invitation codes |
 | Learner | `learner@theguild.dev` | `learner-password` | Learner in "Civic Prototyping Class" |
 
-To try the full onboarding flow, sign in as `demo@theguild.dev`, create an
-ecosystem-admin account (starts pending), approve it from the pending list,
-then sign in as that account to create an ecosystem.
+To try the full onboarding flow, sign in as `superadmin@theguild.dev`,
+create a program admin (starts pending), approve it, then sign in as that
+program admin to create an ecosystem admin. Ecosystem-admin approvals always
+start with the super admin — approve them from the super console, or delegate
+approval authority to the program admin and approve from the program console.
 
 ## Common commands
 
@@ -96,9 +99,10 @@ docs/
 onboarding.
 
 - `profiles` — users with a platform-level `role`
-  (`program_admin`/`ecosystem_admin`/`space_admin`/`member`), an `ecosystem_admin` approval `status` (`pending`/`approved`), and
-  `must_change_password` (admin-created accounts must set their own password on
-  first login).
+  (`super_admin`/`program_admin`/`ecosystem_admin`/`space_admin`/`member`), an
+  approval `status` (`pending`/`approved`), a `must_change_password` flag
+  (admin-created accounts must set their own password on first login), and
+  `can_approve_ecosystem_admins` (super-admin-granted delegation).
 - `ecosystems` — top-level boundary (school, university, organization,
   macro_alliance); holds vision, mission, description, type, and a
   `raw_ecosystem_meta_data` jsonb for school-specific metadata
@@ -114,11 +118,15 @@ onboarding.
   subscriber is added as a member with the code's role. One ecosystem per
   creator is enforced via `ecosystems_one_per_creator`.
 
-Admins onboard down the chain: program admin creates ecosystem admins
-(pending until approved), ecosystem admins create ecosystem + space admins
-(space admins are auto-approved), space admins create spaces + invitation codes,
-and learners self-serve by signing up with a code. Consoles live at
-`/console/program`, `/console/ecosystem`, and `/console/space`.
+Admins onboard down the chain: the super admin creates and approves program
+admins (pending until approved); program admins create ecosystem admins
+(pending); ecosystem admins create ecosystem + space admins (space admins are
+auto-approved); space admins create spaces + invitation codes; learners join
+by signing up with a code. **Ecosystem-admin approvals always start with the
+super admin**, who can approve them directly or delegate that authority to a
+program admin (`can_approve_ecosystem_admins`). Consoles live at
+`/console/super`, `/console/program`, `/console/ecosystem`, and
+`/console/space`.
 
 Content (Sprint 2), Teams (Sprint 4), Challenge (Sprint 5), and Project
 (Sprint 6) tables are planned; see `docs/agile/SPRINT_PLAN.md`.
@@ -138,5 +146,7 @@ Every table enables row-level security with explicit grants for the `anon` and
 `authenticated` API roles (this Supabase version does not auto-grant). Policies
 are the security boundary: e.g. self-joins are limited to `learner`/
 `collaborator` roles, teachers/mentors/admins are assigned by space staff, and
-ecosystem/space ownership is enforced through `created_by`. After any schema
-change, regenerate types with `npm run db:types`.
+ecosystem/space ownership is enforced through `created_by`. Profile `role`,
+`status` and `can_approve_ecosystem_admins` are locked by a trigger to the
+super admin (and, for ecosystem-admin status only, to a delegated program
+admin). After any schema change, regenerate types with `npm run db:types`.

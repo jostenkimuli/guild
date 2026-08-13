@@ -29,10 +29,14 @@ export default async function ProgramConsolePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, status")
+    .select("role, status, can_approve_ecosystem_admins")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "program_admin") redirect("/dashboard");
+  if (!profile || profile.role !== "program_admin" || profile.status !== "approved") {
+    redirect("/dashboard");
+  }
+
+  const delegated = profile.can_approve_ecosystem_admins;
 
   const { data: ecosystemAdmins } = await supabase
     .from("profiles")
@@ -51,7 +55,10 @@ export default async function ProgramConsolePage({
             Program admin console
           </h1>
           <p className="text-sm text-muted-foreground">
-            Create ecosystem-admin accounts and approve them.
+            Create ecosystem-admin accounts
+            {delegated
+              ? " and approve the ones the super admin has delegated to you."
+              : "; their approvals are handled by the super admin."}
           </p>
         </div>
         <Button asChild variant="outline">
@@ -73,8 +80,11 @@ export default async function ProgramConsolePage({
           <CardHeader>
             <CardTitle className="text-lg">Create an ecosystem admin</CardTitle>
             <CardDescription>
-              The account starts as <Badge variant="outline">pending</Badge> and
-              ecosystem creation stays disabled until you approve it.
+              The account starts as <Badge variant="outline">pending</Badge>{" "}
+              and ecosystem creation stays disabled until it is approved
+              {delegated
+                ? " (approval is delegated to you)."
+                : " by the super admin."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -84,9 +94,11 @@ export default async function ProgramConsolePage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Pending approvals</CardTitle>
+            <CardTitle className="text-lg">Pending ecosystem admins</CardTitle>
             <CardDescription>
-              Approve an ecosystem admin to unlock ecosystem creation for them.
+              {delegated
+                ? "The super admin delegated these approvals to you."
+                : "Awaiting super admin approval. Ask the super admin to delegate approvals to you if you should approve these."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -107,12 +119,16 @@ export default async function ProgramConsolePage({
                       {admin.username}
                     </p>
                   </div>
-                  <form action={approveEcosystemAdmin}>
-                    <input type="hidden" name="user_id" value={admin.id} />
-                    <Button type="submit" size="sm">
-                      Approve
-                    </Button>
-                  </form>
+                  {delegated ? (
+                    <form action={approveEcosystemAdmin}>
+                      <input type="hidden" name="user_id" value={admin.id} />
+                      <Button type="submit" size="sm">
+                        Approve
+                      </Button>
+                    </form>
+                  ) : (
+                    <Badge variant="outline">with super admin</Badge>
+                  )}
                 </div>
               ))
             ) : (

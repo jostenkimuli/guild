@@ -11,7 +11,7 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:types": "supabase gen types --local > src/lib/supabase/database.types.ts",
+    "db:types": "supabase gen types --local --schema public > src/lib/supabase/database.types.ts",
     "studio": "supabase studio"
   },
   "dependencies": {
