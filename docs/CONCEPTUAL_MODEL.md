@@ -63,10 +63,12 @@ should stay in lockstep with it.
 
 | Model entity | Current table | Notes |
 | ------------ | ------------- | ----- |
-| User | `profiles` | keep |
-| Ecosystem | `ecosystems` | Sprint 1 |
+| User | `profiles` | plus platform-level `role` + approval `status` + `must_change_password` (Sprint 1 admin layer) |
+| Ecosystem | `ecosystems` | Sprint 1; `raw_ecosystem_meta_data` jsonb for school metadata |
+| Ecosystem staff | `ecosystem_staff` | Sprint 1; who administers an ecosystem |
 | Space | `spaces` | Sprint 1 (replaces old `communities`) |
-| Space membership | `space_memberships` | Sprint 1 (replaces old `community_members`) |
+| Space membership | `space_memberships` | Sprint 1 (replaces old `community_members`); per-space roles |
+| Invitation codes | `invitation_codes` | Sprint 1; signup-with-code joins a space |
 | Content | — | new `content` table (Sprint 2) |
 | Challenge | — | returns as redesigned table (Sprint 5) |
 | Project | — | returns as redesigned table (Sprint 6) |

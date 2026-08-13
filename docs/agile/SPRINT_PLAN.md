@@ -63,10 +63,29 @@ the container layer of the product.
   Civic Prototyping Class, teacher role).
 - RLS verified: learner self-join allowed, teacher self-join blocked, foreign
   `created_by` blocked.
+- **Admin onboarding layer (migration `20260813000001`):** `profiles.role`
+  (`program_admin`/`ecosystem_admin`/`space_admin`/`member`) + approval
+  `status` (`pending`/`approved`) + `must_change_password`; `ecosystems` gains
+  `raw_ecosystem_meta_data` jsonb; new `ecosystem_staff` and `invitation_codes`
+  tables; one-ecosystem-per-creator index; RPCs `admin_create_user` (forbid
+  program-admin creation) and `invitation_code_info`; triggers auto-assign
+  ecosystem staff and space-admin memberships; RLS + grants. Backend flow
+  E2E-verified via the API (pending gate, approval, staff/membership
+  auto-assign, code redemption).
 
-### UI work — IN PROGRESS
-- Dashboard reads ecosystems + spaces + memberships (done, no create flows yet)
-- E-1/E-2/S-1/S-2/S-3/S-4 create/join/browse flows still to build
+### UI work — DONE
+- Dashboard reads ecosystems + spaces + memberships and is role-aware with
+  console links (done)
+- Admin onboarding flow: `/console/program` (create + approve ecosystem
+  admins), `/console/ecosystem` (create ecosystem with school metadata +
+  space admins), `/console/space` (create spaces + invitation codes),
+  server actions in `src/app/actions/console.ts`, client forms in
+  `src/components/console/forms.tsx`
+- Signup requires an invitation code (`/login` validates via
+  `invitation_code_info`); admin-created accounts are redirected to
+  `/setup-password` on first login
+- `proxy.ts` protects `/console` + `/setup-password`; authenticated
+  rendering verified for all four roles and the first-login redirect
 
 ### DoD notes
 - Fresh `db:reset` passes; `db:types` regenerated and committed.
@@ -180,4 +199,7 @@ Planned experiments: verify every schema change via `db:reset` from scratch;
 run `db:types` after every migration.
 
 ### Sprint 1
-_(blank; filled at sprint close)_
+Built the admin onboarding layer: program → ecosystem (with approval gate) →
+space admins, ecosystem/school metadata, and invitation-code signup. Verified
+the whole chain E2E (API + four seeded roles + first-login password flow)
+before calling it done.

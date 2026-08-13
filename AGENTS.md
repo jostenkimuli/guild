@@ -42,7 +42,11 @@ Supabase.
 - After any migration: run `db:reset`, run `db:types`, commit the type diff.
 - Local ports are remapped (DB 55422, API 55421, Studio 55423) — the default
   `5432x` range is Hyper-V-reserved on this host. Do not revert.
-- Seed user: `demo@theguild.dev` / `demo-password` (community: Civic Labs).
+- Seed users: `demo@theguild.dev` / `demo-password` (program admin),
+  `ecoadmin@theguild.dev` / `ecoadmin-password` (ecosystem admin),
+  `spaceadmin@theguild.dev` / `spaceadmin-password` (space admin),
+  `learner@theguild.dev` / `learner-password` (learner in Civic Prototyping
+  Class). Invitation code `CIVICLABS`.
 
 ## Process
 
@@ -56,8 +60,10 @@ The product is modeled as: Ecosystem → Space → (Content / Challenge → Team
 Project), with Users holding per-space roles (Teacher/Learner/Mentor/Industry
 Partner). The full blueprint is `docs/CONCEPTUAL_MODEL.md` — keep schema,
 naming, and UI in lockstep with it. Roadmap → sprint mapping lives in
-`SPRINT_PLAN.md`. As of Sprint 1 the schema has `ecosystems`, `spaces`, and
-`space_memberships`; the old `communities`/`problems`/`projects` tables are
-gone and return redesigned in Sprints 5/6.
+`SPRINT_PLAN.md`. As of Sprint 1 the schema has `ecosystems`, `spaces`,
+`space_memberships`, `ecosystem_staff`, `invitation_codes`, and an admin layer
+on `profiles` (role, approval status, must_change_password); the old
+`communities`/`problems`/`projects` tables are gone and return redesigned in
+Sprints 5/6.
 
 <!-- END:theguild-project-rules -->

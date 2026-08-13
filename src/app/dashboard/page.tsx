@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+import { signOut } from "@/app/actions/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
@@ -22,6 +22,16 @@ export default async function DashboardPage() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, status, must_change_password")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.must_change_password) {
+    redirect("/setup-password");
   }
 
   const { data: ecosystems } = await supabase
@@ -45,13 +55,26 @@ export default async function DashboardPage() {
     ]),
   );
 
+  const consoleLinks =
+    profile?.role === "program_admin"
+      ? [{ href: "/console/program", label: "Program admin console" }]
+      : profile?.role === "ecosystem_admin"
+        ? [{ href: "/console/ecosystem", label: "Ecosystem console" }]
+        : profile?.role === "space_admin"
+          ? [{ href: "/console/space", label: "Space admin console" }]
+          : [];
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-6">
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
             Signed in as {user.email}
+            <Badge variant="secondary">{profile?.role ?? "member"}</Badge>
+            {profile?.status === "pending" ? (
+              <Badge variant="outline">pending approval</Badge>
+            ) : null}
           </p>
         </div>
         <form action={signOut}>
@@ -60,6 +83,16 @@ export default async function DashboardPage() {
           </Button>
         </form>
       </header>
+
+      {consoleLinks.length > 0 ? (
+        <section className="mt-8 flex flex-wrap gap-3">
+          {consoleLinks.map((link) => (
+            <Button asChild key={link.href} variant="outline">
+              <Link href={link.href}>{link.label}</Link>
+            </Button>
+          ))}
+        </section>
+      ) : null}
 
       <section className="mt-8 space-y-4">
         <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
@@ -125,7 +158,7 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle className="text-lg">No ecosystems yet</CardTitle>
               <CardDescription>
-                The next sprint increment adds the create flow.
+                Ecosystems appear here once one is created and approved.
               </CardDescription>
             </CardHeader>
           </Card>

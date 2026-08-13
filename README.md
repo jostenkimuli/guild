@@ -44,12 +44,18 @@ npm run dev
 # open http://localhost:3000
 ```
 
-Demo accounts:
+Demo accounts (seeded):
 
 | Role | Email | Password | In the seed |
 | ---- | ----- | -------- | ----------- |
-| Teacher | `demo@theguild.dev` | `demo-password` | Teacher of "Civic Prototyping Class" (owns the "Civic Labs Academy" ecosystem) |
+| Program admin | `demo@theguild.dev` | `demo-password` | Creates and approves ecosystem-admin accounts |
+| Ecosystem admin | `ecoadmin@theguild.dev` | `ecoadmin-password` | Owns "Civic Labs Academy"; creates space admins |
+| Space admin | `spaceadmin@theguild.dev` | `spaceadmin-password` | Owns "Civic Prototyping Class"; generates invitation codes |
 | Learner | `learner@theguild.dev` | `learner-password` | Learner in "Civic Prototyping Class" |
+
+To try the full onboarding flow, sign in as `demo@theguild.dev`, create an
+ecosystem-admin account (starts pending), approve it from the pending list,
+then sign in as that account to create an ecosystem.
 
 ## Common commands
 
@@ -68,9 +74,11 @@ Demo accounts:
 
 ```
 src/
-  app/            # routes: /, /login, /dashboard
+  app/            # routes: /, /login, /dashboard, /setup-password, /console/*
   components/ui/  # shadcn/ui components
+  components/console/  # client forms for the admin consoles
   lib/supabase/   # browser + server clients, generated DB types
+  actions/console.ts   # server actions for the onboarding flow
   proxy.ts        # session-refresh proxy (Next 16 "middleware")
 supabase/
   migrations/     # SQL migrations (schema + RLS + grants)
@@ -84,14 +92,33 @@ docs/
 ## Domain model (current schema)
 
 `Ecosystem → Space → SpaceMembership`, with per-space roles
-(`teacher`/`learner`/`mentor`/`collaborator`/`admin`).
+(`teacher`/`learner`/`mentor`/`collaborator`/`admin`), plus an admin layer for
+onboarding.
 
+- `profiles` — users with a platform-level `role`
+  (`program_admin`/`ecosystem_admin`/`space_admin`/`member`), an `ecosystem_admin` approval `status` (`pending`/`approved`), and
+  `must_change_password` (admin-created accounts must set their own password on
+  first login).
 - `ecosystems` — top-level boundary (school, university, organization,
-  macro_alliance); holds vision, mission, description, type.
+  macro_alliance); holds vision, mission, description, type, and a
+  `raw_ecosystem_meta_data` jsonb for school-specific metadata
+  (director, headteacher, location).
+- `ecosystem_staff` — who administers an ecosystem
+  (`user_id` + `ecosystem_id`, role `ecosystem_admin`); auto-created when an
+  ecosystem is made.
 - `spaces` — containers inside an ecosystem (classroom, innovation_hub,
   project_group).
 - `space_memberships` — the flexible per-space role link
-  (`UNIQUE (space_id, user_id)`).
+  (`UNIQUE (space_id, user_id)`); the space creator is auto-added as `admin`.
+- `invitation_codes` — join codes for a space; a signup redeems a code and the
+  subscriber is added as a member with the code's role. One ecosystem per
+  creator is enforced via `ecosystems_one_per_creator`.
+
+Admins onboard down the chain: program admin creates ecosystem admins
+(pending until approved), ecosystem admins create ecosystem + space admins
+(space admins are auto-approved), space admins create spaces + invitation codes,
+and learners self-serve by signing up with a code. Consoles live at
+`/console/program`, `/console/ecosystem`, and `/console/space`.
 
 Content (Sprint 2), Teams (Sprint 4), Challenge (Sprint 5), and Project
 (Sprint 6) tables are planned; see `docs/agile/SPRINT_PLAN.md`.

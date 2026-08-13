@@ -22,6 +22,8 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [invitationCode, setInvitationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -31,11 +33,66 @@ export default function LoginPage() {
     setMessage(null);
 
     const supabase = createClient();
-    const { error } =
-      mode === "signin"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
 
+    if (mode === "signin") {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        setMessage(error.message);
+        setLoading(false);
+        return;
+      }
+
+      const uid = data.user?.id;
+      if (uid) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("must_change_password")
+          .eq("id", uid)
+          .single();
+        if (profile?.must_change_password) {
+          router.push("/setup-password");
+        } else {
+          router.push("/dashboard");
+        }
+      }
+      router.refresh();
+      return;
+    }
+
+    // signup — an invitation code is required to join a space
+    const code = invitationCode.trim().toUpperCase();
+    if (!code) {
+      setMessage("An invitation code is required to join a space.");
+      setLoading(false);
+      return;
+    }
+
+    const { data: info, error: infoError } = await supabase
+      .rpc("invitation_code_info", { p_code: code })
+      .single();
+    if (infoError || !info?.code_valid) {
+      setMessage("That invitation code is invalid or has expired.");
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: email.split("@")[0],
+          full_name: fullName,
+          invitation_code: code,
+          role: "member",
+          status: "approved",
+          must_change_password: "false",
+        },
+      },
+    });
     if (error) {
       setMessage(error.message);
       setLoading(false);
@@ -53,8 +110,8 @@ export default function LoginPage() {
           <CardTitle>TheGuild</CardTitle>
           <CardDescription>
             {mode === "signin"
-              ? "Sign in to your communities."
-              : "Create an account to get started."}
+              ? "Sign in to your spaces and ecosystems."
+              : "Join a space using an invitation code."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -76,27 +133,59 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 required
+                minLength={6}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
               />
             </div>
+            {mode === "signup" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Full name</Label>
+                  <Input
+                    id="full_name"
+                    placeholder="Your name"
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invitation_code">Invitation code</Label>
+                  <Input
+                    id="invitation_code"
+                    placeholder="e.g. CIVICLABS"
+                    required
+                    value={invitationCode}
+                    onChange={(event) => setInvitationCode(event.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A code from your space admin — it decides your role in the
+                    space.
+                  </p>
+                </div>
+              </>
+            ) : null}
             {message ? (
               <p className="text-sm text-destructive">{message}</p>
             ) : null}
             <Button type="submit" className="w-full" disabled={loading}>
-              {mode === "signin" ? "Sign in" : "Sign up"}
+              {loading
+                ? "Please wait…"
+                : mode === "signin"
+                  ? "Sign in"
+                  : "Create account"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm text-muted-foreground">
             {mode === "signin" ? (
               <>
-                No account?{" "}
+                Need an invitation?{" "}
                 <button
                   type="button"
                   className="text-foreground underline underline-offset-4"
                   onClick={() => setMode("signup")}
                 >
-                  Sign up
+                  Create an account
                 </button>
               </>
             ) : (
