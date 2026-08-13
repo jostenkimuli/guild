@@ -44,8 +44,12 @@ npm run dev
 # open http://localhost:3000
 ```
 
-Demo account: `demo@theguild.dev` / `demo-password` — teacher of "Civic
-Prototyping Class" inside the "Civic Labs Academy" ecosystem.
+Demo accounts:
+
+| Role | Email | Password | In the seed |
+| ---- | ----- | -------- | ----------- |
+| Teacher | `demo@theguild.dev` | `demo-password` | Teacher of "Civic Prototyping Class" (owns the "Civic Labs Academy" ecosystem) |
+| Learner | `learner@theguild.dev` | `learner-password` | Learner in "Civic Prototyping Class" |
 
 ## Common commands
 
