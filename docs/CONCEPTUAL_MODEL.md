@@ -69,11 +69,41 @@ should stay in lockstep with it.
 | Space | `spaces` | Sprint 1 (replaces old `communities`) |
 | Space membership | `space_memberships` | Sprint 1 (replaces old `community_members`); per-space roles |
 | Invitation codes | `invitation_codes` | Sprint 1; signup-with-code joins a space |
-| Content | — | new `content` table (Sprint 2) |
+| Curriculum | `curricula` (+ `curriculum_goals`) | Sprint 2; one per Space, organised as a tree |
+| Academic tree | `grades` → `terms` → `units` → `topics` | Sprint 2; the structure under a curriculum |
+| Topic parts | `learning_objectives`, `content`, `lessons`, `teaching_guidance` | Sprint 2; what a topic teaches |
+| Lesson parts | `activities`, `assessments`; shared `resources` via `lesson_resources` (M2M) | Sprint 2; parts of a lesson plan |
+| Unit projects | `projects` | Sprint 2; one project per unit |
+| Curriculum evaluation | `curriculum_evaluations` | Sprint 2; period + achievement rate per curriculum |
 | Challenge | — | returns as redesigned table (Sprint 5) |
 | Project | — | returns as redesigned table (Sprint 6) |
 
-### Approval chain (Sprint 2)
+### Curriculum structure (Sprint 2)
+
+A Space hosts one or more `curricula`. Each curriculum is a tree:
+
+`curricula → grades → terms → units → topics → (learning_objectives / content
+/ lessons / teaching_guidance); lessons → activities / assessments /
+lesson_resources → resources; projects (per unit); curriculum_evaluations
+(per curriculum)`
+
+- A **curriculum** (name, year) belongs to exactly one Space and sets the
+  **curriculum goals** it aims to achieve. Its outcomes are tracked by
+  **curriculum evaluations** (period + achievement rate).
+- **Grades → Terms → Units → Topics** is the academic tree a curriculum is
+  taught through.
+- A **topic** carries what is taught: **learning objectives** (ordered),
+  **content** items, reusable **lessons**, and **teaching guidance** for the
+  teacher.
+- A **lesson** is a plan with a title, duration and description, plus
+  **activities** (ordered steps), **assessments** (quiz/exercise/test/
+  project), and **resources** from a shared library, linked many-to-many.
+- Each **unit** may define one or more **projects** for learners.
+- Every row resolves to its curriculum (SECURITY DEFINER helpers); RLS then
+  scopes access through the curriculum's Space: members read, space staff
+  (admin/teacher) write.
+
+### Approval chain (Sprint 1)
 
 - **Super admin** creates program admins (pending) and approves them.
 - **Program admin** (approved) creates ecosystem admins (pending).

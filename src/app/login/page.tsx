@@ -166,7 +166,7 @@ export default function LoginPage() {
                   <Label htmlFor="invitation_code">Invitation code</Label>
                   <Input
                     id="invitation_code"
-                    placeholder="e.g. CIVICLABS"
+                    placeholder="e.g. MATHLAB"
                     required
                     minLength={4}
                     maxLength={20}

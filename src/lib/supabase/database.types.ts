@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -9,6 +9,207 @@
 export type Database = {
   public: {
     Tables: {
+      activities: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          lesson_id: string
+          sequence: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          lesson_id: string
+          sequence?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          lesson_id?: string
+          sequence?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessments: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          lesson_id: string
+          sequence: number
+          title: string
+          type: Database["public"]["Enums"]["assessment_type"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          lesson_id: string
+          sequence?: number
+          title: string
+          type?: Database["public"]["Enums"]["assessment_type"]
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          lesson_id?: string
+          sequence?: number
+          title?: string
+          type?: Database["public"]["Enums"]["assessment_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessments_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          title: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          title: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          title?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curricula: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          space_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          space_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          space_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curricula_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_evaluations: {
+        Row: {
+          achievement_rate: number
+          created_at: string
+          curriculum_id: string
+          id: string
+          period: string
+        }
+        Insert: {
+          achievement_rate?: number
+          created_at?: string
+          curriculum_id: string
+          id?: string
+          period: string
+        }
+        Update: {
+          achievement_rate?: number
+          created_at?: string
+          curriculum_id?: string
+          id?: string
+          period?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_evaluations_curriculum_id_fkey"
+            columns: ["curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "curricula"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_goals: {
+        Row: {
+          created_at: string
+          curriculum_id: string
+          description: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          curriculum_id: string
+          description: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          curriculum_id?: string
+          description?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_goals_curriculum_id_fkey"
+            columns: ["curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "curricula"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ecosystem_staff: {
         Row: {
           assigned_at: string
@@ -51,6 +252,7 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          is_private: boolean
           mission: string | null
           name: string
           raw_ecosystem_meta_data: Json
@@ -62,6 +264,7 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          is_private?: boolean
           mission?: string | null
           name: string
           raw_ecosystem_meta_data?: Json
@@ -73,6 +276,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          is_private?: boolean
           mission?: string | null
           name?: string
           raw_ecosystem_meta_data?: Json
@@ -85,6 +289,35 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grades: {
+        Row: {
+          created_at: string
+          curriculum_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          curriculum_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          curriculum_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grades_curriculum_id_fkey"
+            columns: ["curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "curricula"
             referencedColumns: ["id"]
           },
         ]
@@ -140,6 +373,176 @@ export type Database = {
           },
         ]
       }
+      learning_objectives: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          sequence: number
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          sequence?: number
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          sequence?: number
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_objectives_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_deletions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          lesson_id: string
+          requested_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          lesson_id: string
+          requested_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          requested_by?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_deletions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_deletions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_deletions_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_resources: {
+        Row: {
+          created_at: string
+          lesson_id: string
+          resource_id: string
+        }
+        Insert: {
+          created_at?: string
+          lesson_id: string
+          resource_id: string
+        }
+        Update: {
+          created_at?: string
+          lesson_id?: string
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_resources_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_resources_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lessons: {
+        Row: {
+          content: string | null
+          created_at: string
+          delivery_type: Database["public"]["Enums"]["lesson_delivery_type"]
+          estimated_duration_minutes: number | null
+          id: string
+          is_published: boolean | null
+          published_at: string | null
+          teacher_id: string | null
+          title: string
+          topic_id: string
+          video_url: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          delivery_type?: Database["public"]["Enums"]["lesson_delivery_type"]
+          estimated_duration_minutes?: number | null
+          id?: string
+          is_published?: boolean | null
+          published_at?: string | null
+          teacher_id?: string | null
+          title: string
+          topic_id: string
+          video_url?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          delivery_type?: Database["public"]["Enums"]["lesson_delivery_type"]
+          estimated_duration_minutes?: number | null
+          id?: string
+          is_published?: boolean | null
+          published_at?: string | null
+          teacher_id?: string | null
+          title?: string
+          topic_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -147,6 +550,7 @@ export type Database = {
           can_approve_ecosystem_admins: boolean
           created_at: string
           display_name: string
+          ecosystem_type: Database["public"]["Enums"]["ecosystem_type"] | null
           id: string
           must_change_password: boolean
           role: Database["public"]["Enums"]["profile_role"]
@@ -160,6 +564,7 @@ export type Database = {
           can_approve_ecosystem_admins?: boolean
           created_at?: string
           display_name?: string
+          ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"] | null
           id: string
           must_change_password?: boolean
           role?: Database["public"]["Enums"]["profile_role"]
@@ -173,6 +578,7 @@ export type Database = {
           can_approve_ecosystem_admins?: boolean
           created_at?: string
           display_name?: string
+          ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"] | null
           id?: string
           must_change_password?: boolean
           role?: Database["public"]["Enums"]["profile_role"]
@@ -181,6 +587,170 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          title: string
+          unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          title: string
+          unit_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          title?: string
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resources: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          type: Database["public"]["Enums"]["resource_type"]
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title: string
+          type?: Database["public"]["Enums"]["resource_type"]
+          url?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          type?: Database["public"]["Enums"]["resource_type"]
+          url?: string
+        }
+        Relationships: []
+      }
+      scheduled_sessions: {
+        Row: {
+          created_at: string
+          handout_notes_url: string | null
+          id: string
+          lesson_id: string
+          location_room: string | null
+          medium: Database["public"]["Enums"]["session_medium_type"]
+          meeting_url: string | null
+          recording_url: string | null
+          scheduled_end: string
+          scheduled_start: string
+          session_status: string | null
+        }
+        Insert: {
+          created_at?: string
+          handout_notes_url?: string | null
+          id?: string
+          lesson_id: string
+          location_room?: string | null
+          medium?: Database["public"]["Enums"]["session_medium_type"]
+          meeting_url?: string | null
+          recording_url?: string | null
+          scheduled_end: string
+          scheduled_start: string
+          session_status?: string | null
+        }
+        Update: {
+          created_at?: string
+          handout_notes_url?: string | null
+          id?: string
+          lesson_id?: string
+          location_room?: string | null
+          medium?: Database["public"]["Enums"]["session_medium_type"]
+          meeting_url?: string | null
+          recording_url?: string | null
+          scheduled_end?: string
+          scheduled_start?: string
+          session_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_sessions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: true
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_edits: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          changes: Json
+          created_at: string
+          edited_by: string
+          id: string
+          space_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          changes?: Json
+          created_at?: string
+          edited_by: string
+          id?: string
+          space_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          changes?: Json
+          created_at?: string
+          edited_by?: string
+          id?: string
+          space_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_edits_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_edits_edited_by_fkey"
+            columns: ["edited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_edits_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       space_memberships: {
         Row: {
@@ -228,6 +798,7 @@ export type Database = {
           description: string | null
           ecosystem_id: string
           id: string
+          is_private: boolean
           name: string
           slug: string | null
           type: Database["public"]["Enums"]["space_type"]
@@ -238,6 +809,7 @@ export type Database = {
           description?: string | null
           ecosystem_id: string
           id?: string
+          is_private?: boolean
           name: string
           slug?: string | null
           type?: Database["public"]["Enums"]["space_type"]
@@ -248,6 +820,7 @@ export type Database = {
           description?: string | null
           ecosystem_id?: string
           id?: string
+          is_private?: boolean
           name?: string
           slug?: string | null
           type?: Database["public"]["Enums"]["space_type"]
@@ -269,6 +842,179 @@ export type Database = {
           },
         ]
       }
+      syllabi: {
+        Row: {
+          created_at: string
+          curriculum_id: string
+          grading_policy: Json
+          id: string
+          instructor_notes: string | null
+          required_materials: string | null
+          teacher_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          curriculum_id: string
+          grading_policy: Json
+          id?: string
+          instructor_notes?: string | null
+          required_materials?: string | null
+          teacher_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          curriculum_id?: string
+          grading_policy?: Json
+          id?: string
+          instructor_notes?: string | null
+          required_materials?: string | null
+          teacher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "syllabi_curriculum_id_fkey"
+            columns: ["curriculum_id"]
+            isOneToOne: true
+            referencedRelation: "curricula"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teaching_guidance: {
+        Row: {
+          created_at: string
+          guidance: string
+          id: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          guidance: string
+          id?: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          guidance?: string
+          id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teaching_guidance_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      terms: {
+        Row: {
+          created_at: string
+          grade_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          grade_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          grade_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terms_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "grades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topics: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_weeks: number | null
+          id: string
+          linked_goal_id: string | null
+          name: string
+          sequence_order: number
+          unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number | null
+          id?: string
+          linked_goal_id?: string | null
+          name: string
+          sequence_order?: number
+          unit_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number | null
+          id?: string
+          linked_goal_id?: string | null
+          name?: string
+          sequence_order?: number
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topics_linked_goal_id_fkey"
+            columns: ["linked_goal_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topics_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          term_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          term_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          term_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -277,6 +1023,7 @@ export type Database = {
       admin_create_user: {
         Args: {
           p_ecosystem_id?: string
+          p_ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"]
           p_email: string
           p_full_name?: string
           p_role: Database["public"]["Enums"]["profile_role"]
@@ -285,6 +1032,17 @@ export type Database = {
         }
         Returns: string
       }
+      can_access_curriculum: {
+        Args: { p_curriculum_id: string }
+        Returns: boolean
+      }
+      can_edit_curriculum: {
+        Args: { p_curriculum_id: string }
+        Returns: boolean
+      }
+      can_view_ecosystem: { Args: { p_ecosystem_id: string }; Returns: boolean }
+      can_view_space: { Args: { p_space_id: string }; Returns: boolean }
+      grade_curriculum: { Args: { p_grade_id: string }; Returns: string }
       invitation_code_info: {
         Args: { p_code: string }
         Returns: {
@@ -298,14 +1056,22 @@ export type Database = {
           used_count: number
         }[]
       }
+      lesson_curriculum: { Args: { p_lesson_id: string }; Returns: string }
+      term_curriculum: { Args: { p_term_id: string }; Returns: string }
+      topic_curriculum: { Args: { p_topic_id: string }; Returns: string }
+      unit_curriculum: { Args: { p_unit_id: string }; Returns: string }
     }
     Enums: {
+      assessment_type: "quiz" | "exercise" | "test" | "project"
       ecosystem_staff_role: "ecosystem_admin" | "space_admin"
       ecosystem_type:
-        | "school"
+        | "primary_school"
         | "university"
         | "organization"
         | "macro_alliance"
+        | "nursery_school"
+        | "secondary_school"
+      lesson_delivery_type: "self_paced" | "scheduled"
       profile_role:
         | "program_admin"
         | "ecosystem_admin"
@@ -313,7 +1079,9 @@ export type Database = {
         | "member"
         | "super_admin"
       profile_status: "pending" | "approved" | "rejected"
-      space_type: "classroom" | "innovation_hub" | "project_group"
+      resource_type: "link" | "video" | "document" | "text"
+      session_medium_type: "online" | "physical"
+      space_type: "department" | "innovation_hub" | "project_group"
       user_space_role:
         | "teacher"
         | "learner"
@@ -447,13 +1215,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      assessment_type: ["quiz", "exercise", "test", "project"],
       ecosystem_staff_role: ["ecosystem_admin", "space_admin"],
       ecosystem_type: [
-        "school",
+        "primary_school",
         "university",
         "organization",
         "macro_alliance",
+        "nursery_school",
+        "secondary_school",
       ],
+      lesson_delivery_type: ["self_paced", "scheduled"],
       profile_role: [
         "program_admin",
         "ecosystem_admin",
@@ -462,7 +1234,9 @@ export const Constants = {
         "super_admin",
       ],
       profile_status: ["pending", "approved", "rejected"],
-      space_type: ["classroom", "innovation_hub", "project_group"],
+      resource_type: ["link", "video", "document", "text"],
+      session_medium_type: ["online", "physical"],
+      space_type: ["department", "innovation_hub", "project_group"],
       user_space_role: [
         "teacher",
         "learner",

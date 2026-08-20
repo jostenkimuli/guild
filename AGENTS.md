@@ -46,8 +46,8 @@ Supabase.
   `demo@theguild.dev` / `demo-password` (program admin),
   `ecoadmin@theguild.dev` / `ecoadmin-password` (ecosystem admin),
   `spaceadmin@theguild.dev` / `spaceadmin-password` (space admin),
-  `learner@theguild.dev` / `learner-password` (learner in Civic Prototyping
-  Class). Invitation code `CIVICLABS`.
+  `learner@theguild.dev` / `learner-password` (learner in Primary Mathematics
+  Space). Invitation code `MATHLAB`.
 
 ## Process
 
@@ -61,10 +61,20 @@ The product is modeled as: Ecosystem → Space → (Content / Challenge → Team
 Project), with Users holding per-space roles (Teacher/Learner/Mentor/Industry
 Partner). The full blueprint is `docs/CONCEPTUAL_MODEL.md` — keep schema,
 naming, and UI in lockstep with it. Roadmap → sprint mapping lives in
-`SPRINT_PLAN.md`. As of Sprint 1 the schema has `ecosystems`, `spaces`,
-`space_memberships`, `ecosystem_staff`, `invitation_codes`, and an admin layer
-on `profiles` (roles incl. `super_admin`, approval status, must_change_password,
-delegation flag); the old `communities`/`problems`/`projects` tables are gone
-and return redesigned in Sprints 5/6.
+`SPRINT_PLAN.md`. The schema has `ecosystems`, `spaces`,
+`space_memberships`, `ecosystem_staff`, `invitation_codes`, an admin layer on
+`profiles` (roles incl. `super_admin`, approval status, must_change_password,
+delegation flag), and the Sprint 2 curriculum structure: a `curricula` row
+under each `spaces` row holds `curriculum_goals`, `grades` → `terms` → `units`
+→ `topics`, and `curriculum_evaluations`; each `topics` row holds
+`learning_objectives`, `content`, `lessons`, and `teaching_guidance`; each
+`lessons` row holds `activities` and `assessments`, and links shared
+`resources` through `lesson_resources` (many-to-many); `projects` live per
+unit. Every row resolves to its curriculum via SECURITY DEFINER helpers, so
+RLS scopes members-read / staff-write through the space. The old
+`communities`/`problems`/`projects` tables are gone and return redesigned in
+Sprints 5/6. Lessons are published at `/spaces/[slug]` (curriculum library)
+and `/spaces/[slug]/lessons/[id]` (view), actions in
+`src/app/actions/lessons.ts`.
 
 <!-- END:theguild-project-rules -->

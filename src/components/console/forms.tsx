@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import {
   createEcosystem,
   createEcosystemAdmin,
-  createInvitationCode,
   createProgramAdmin,
   createSpace,
   createSpaceAdmin,
@@ -17,17 +16,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ECOSYSTEM_TYPE_LABELS,
+  SPACE_TYPE_LABELS,
+  ecosystemTypeLabel,
+  type SpaceType,
+} from "@/lib/ecosystems";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
-
-const roleOptions = [
-  { value: "learner", label: "Learner" },
-  { value: "collaborator", label: "Collaborator" },
-  { value: "teacher", label: "Teacher" },
-  { value: "mentor", label: "Mentor" },
-  { value: "admin", label: "Admin" },
-];
 
 function Field({
   id,
@@ -49,12 +46,12 @@ function Field({
   );
 }
 
+export { Field };
+
 function Feedback({ state }: { state: ConsoleActionState }) {
   if (state.success) {
     return (
-      <p className="text-sm text-emerald-600 dark:text-emerald-400">
-        Done. {state.code ? `New invitation code: ${state.code}` : ""}
-      </p>
+      <p className="text-sm text-emerald-600 dark:text-emerald-400">Done.</p>
     );
   }
   if (state.error) {
@@ -62,6 +59,8 @@ function Feedback({ state }: { state: ConsoleActionState }) {
   }
   return null;
 }
+
+export { Feedback };
 
 function useRefreshOnSuccess(state: ConsoleActionState) {
   const router = useRouter();
@@ -76,6 +75,7 @@ function CreateAdminAccountForm({
   actionLabel,
   hint,
   ecosystemId,
+  showEcosystemType = false,
 }: {
   idPrefix: string;
   action: (
@@ -85,6 +85,7 @@ function CreateAdminAccountForm({
   actionLabel: string;
   hint: string;
   ecosystemId?: string;
+  showEcosystemType?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, {
     success: false,
@@ -116,6 +117,26 @@ function CreateAdminAccountForm({
           autoComplete="off"
         />
       </Field>
+      {showEcosystemType ? (
+        <Field
+          id={`${idPrefix}-ecosystem_type`}
+          label="Ecosystem type"
+          hint="The type of ecosystem this admin will create."
+        >
+          <select
+            id={`${idPrefix}-ecosystem_type`}
+            name="ecosystem_type"
+            className={selectClass}
+            defaultValue="primary_school"
+          >
+            {Object.entries(ECOSYSTEM_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      ) : null}
       <Field id={`${idPrefix}-temp_password`} label="Temporary password" hint={hint}>
         <Input
           id={`${idPrefix}-temp_password`}
@@ -153,6 +174,7 @@ export function CreateEcosystemAdminForm() {
       action={createEcosystemAdmin}
       actionLabel="Create ecosystem admin"
       hint="The account starts pending. Approval is decided by the super admin, or by the program admin if the super admin has delegated approval to them."
+      showEcosystemType
     />
   );
 }
@@ -169,7 +191,7 @@ export function CreateSpaceAdminForm({ ecosystemId }: { ecosystemId: string }) {
   );
 }
 
-export function CreateEcosystemForm() {
+export function CreateEcosystemForm({ ecosystemType }: { ecosystemType?: string }) {
   const [state, action, pending] = useActionState(createEcosystem, {
     success: false,
   });
@@ -188,12 +210,9 @@ export function CreateEcosystemForm() {
           />
         </Field>
         <Field id="eco-type" label="Type">
-          <select id="eco-type" name="type" className={selectClass} defaultValue="school">
-            <option value="school">School</option>
-            <option value="university">University</option>
-            <option value="organization">Organization</option>
-            <option value="macro_alliance">Macro alliance</option>
-          </select>
+          <p className="rounded-lg border bg-muted px-3 py-2 text-sm text-muted-foreground">
+            {ecosystemTypeLabel(ecosystemType)}
+          </p>
         </Field>
       </div>
       <Field id="eco-vision" label="Vision">
@@ -243,7 +262,13 @@ export function CreateEcosystemForm() {
   );
 }
 
-export function CreateSpaceForm({ ecosystemId }: { ecosystemId: string }) {
+export function CreateSpaceForm({
+  ecosystemId,
+  defaultType = "department",
+}: {
+  ecosystemId: string;
+  defaultType?: SpaceType;
+}) {
   const [state, action, pending] = useActionState(createSpace, {
     success: false,
   });
@@ -263,10 +288,17 @@ export function CreateSpaceForm({ ecosystemId }: { ecosystemId: string }) {
           />
         </Field>
         <Field id="sp-type" label="Type">
-          <select id="sp-type" name="type" className={selectClass} defaultValue="classroom">
-            <option value="classroom">Classroom</option>
-            <option value="innovation_hub">Innovation hub</option>
-            <option value="project_group">Project group</option>
+          <select
+            id="sp-type"
+            name="type"
+            className={selectClass}
+            defaultValue={defaultType}
+          >
+            {Object.entries(SPACE_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </Field>
       </div>
@@ -276,7 +308,7 @@ export function CreateSpaceForm({ ecosystemId }: { ecosystemId: string }) {
           name="slug"
           maxLength={60}
           pattern="[a-z0-9][a-z0-9-]*"
-          placeholder="my-classroom"
+          placeholder="my-department"
         />
       </Field>
       <Field id="sp-description" label="Description">
@@ -285,56 +317,6 @@ export function CreateSpaceForm({ ecosystemId }: { ecosystemId: string }) {
       <Feedback state={state} />
       <Button type="submit" disabled={pending}>
         Create space
-      </Button>
-    </form>
-  );
-}
-
-export function InviteCodeForm({ spaceId }: { spaceId: string }) {
-  const [state, action, pending] = useActionState(createInvitationCode, {
-    success: false,
-  });
-  useRefreshOnSuccess(state);
-
-  return (
-    <form action={action} className="space-y-4">
-      <input type="hidden" name="space_id" value={spaceId} />
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field id="ic-role" label="Role the code grants">
-          <select id="ic-role" name="role" className={selectClass} defaultValue="learner">
-            {roleOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field id="ic-max_uses" label="Max uses" hint="Blank = unlimited">
-          <Input
-            id="ic-max_uses"
-            name="max_uses"
-            type="number"
-            min={1}
-            max={1000000}
-            step={1}
-            inputMode="numeric"
-          />
-        </Field>
-        <Field id="ic-expires" label="Valid for (days)" hint="Blank = never expires">
-          <Input
-            id="ic-expires"
-            name="expires_in_days"
-            type="number"
-            min={1}
-            max={3650}
-            step={1}
-            inputMode="numeric"
-          />
-        </Field>
-      </div>
-      <Feedback state={state} />
-      <Button type="submit" disabled={pending}>
-        Generate invitation code
       </Button>
     </form>
   );

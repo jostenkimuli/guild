@@ -59,8 +59,8 @@ the container layer of the product.
 - Dropped the old community layer (`communities`, `community_members`,
   `problems`, `projects`) — Challenge/Project return redesigned in Sprints
   5/6. Migrations `20260812000000` + `20260812000001` apply from scratch;
-  `db:types` regenerated; seed rebuilt (demo user → Civic Labs Academy →
-  Civic Prototyping Class, teacher role).
+  `db:types` regenerated; seed rebuilt (demo user → A Sample School Ecosystem →
+  Primary Mathematics Space, teacher role).
 - RLS verified: learner self-join allowed, teacher self-join blocked, foreign
   `created_by` blocked.
 - **Admin onboarding layer (migration `20260813000001`):** `profiles.role`
@@ -103,7 +103,7 @@ the container layer of the product.
 
 ---
 
-## Sprint 2 — Lessons and teachers (Phase 1b)
+## Sprint 2 — Lessons and teachers (Phase 1b) — DONE
 
 **Goal:** teachers publish content and learners consume it — traction.
 
@@ -115,8 +115,46 @@ the container layer of the product.
 - L-3 Lesson view
 - L-4 Lesson progress
 
-### Schema work
-- New `content` table + RLS/grants; per-space role semantics on members.
+### Schema work — DONE
+- Curriculum tree: `curricula` (name, year, `space_id`) + `curriculum_goals`
+  (the aims); `grades` → `terms` → `units` → `topics` (the academic tree).
+- Topic children: `learning_objectives` (ordered), `content`, `lessons`
+  (title, description, duration), `teaching_guidance`.
+- Lesson children: `activities` (ordered steps), `assessments`
+  (quiz/exercise/test/project), and a shared `resources` library linked to
+  lessons via `lesson_resources` (many-to-many).
+- Per unit: `projects`; per curriculum: `curriculum_evaluations` (period +
+  achievement rate).
+- RLS: SECURITY DEFINER helpers resolve any row to its curriculum; curricula
+  and all children are readable by space members and writable by space staff
+  (admin/teacher); the shared `resources` library is readable by any signed-in
+  user and writable by staff. Grants for `authenticated` on all new tables.
+- Migration `20260815000000` (replacing the previous lesson-cycle migration)
+  applies from scratch; `db:types` regenerated; seed rebuilt around a Primary
+  Mathematics curriculum in Primary Mathematics Space (goals, Grade 7 terms,
+  units, topics, objectives, content, 4 lessons with activities/assessments/
+  resources, teaching guidance, unit projects, and two evaluations). RLS
+  verified via the API: member reads, staff writes (lesson + activity +
+  assessment + resource + lesson_resources), learner publish blocked (403),
+  learner resource write blocked (403), non-member reads empty.
+
+### UI work — DONE
+- Space home page `/spaces/[slug]`: space info, the curriculum tree with the
+  lesson library (curriculum → grades → terms → units → topics → lessons),
+  member roster, and a "New lesson" button for staff (L-2, closes the S-4
+  space-home gap).
+- Lesson view `/spaces/[slug]/lessons/[id]`: topic breadcrumb, lesson
+  description, learning objectives, content, activities, assessments and
+  linked resources (L-3).
+- Publish flow `/spaces/[slug]/lessons/new`: topic picker + dynamic
+  activities/assessments/resources form (L-1), server actions in
+  `src/app/actions/lessons.ts`.
+- Server components by default; client forms only where interactivity is
+  needed (`src/components/spaces/lesson-form.tsx`).
+
+### DoD notes
+- Fresh `db:reset` passes; `db:types` regenerated and committed; lint,
+  typecheck, and `next build` green; positive + negative RLS checks pass.
 
 ---
 
@@ -214,3 +252,11 @@ Built the admin onboarding layer: program → ecosystem (with approval gate) →
 space admins, ecosystem/school metadata, and invitation-code signup. Verified
 the whole chain E2E (API + four seeded roles + first-login password flow)
 before calling it done.
+
+### Sprint 2
+Shipped the lesson delivery cycle end-to-end: curricula → scheme of work →
+lesson design (objectives/activities/resources) → delivery session →
+objective-level evidence. Started from the plan's single `content` table but
+expanded (with agreement) to the full design because it directly serves the
+MVP loop and the conceptual model; learner self-tracking on objective results
+was added after the first pass so L-4 works for members, not just teachers.

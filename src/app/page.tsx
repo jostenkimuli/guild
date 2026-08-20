@@ -31,7 +31,7 @@ export default async function Home() {
           Virtual communities solving real-world problems, at scale.
         </h1>
         <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-          TheGuild is an educational ecosystem where schools create classrooms,
+          TheGuild is an educational ecosystem where schools create departments,
           learners form teams, and teams solve real challenges — guided by
           mentors, at any scale.
         </p>

@@ -154,8 +154,14 @@ priority (P0/P1/P2)`.
 ## Notes for sprint planning
 
 - Sprint 0 (done) = scaffold: stack, auth, schema, green build, agile process.
-- Schema status after Sprint 1 schema work: `ecosystems`, `spaces`,
-  `space_memberships` + enums exist; the old community layer (`communities`,
-  `community_members`, `problems`, `projects`) was dropped — Challenge and
-  Project return redesigned in Sprints 5/6. Keep the RLS + grants + `db:types`
-  discipline from the DoD on every migration.
+- Schema status: `ecosystems`, `spaces`, `space_memberships` + enums exist;
+  Sprint 1 added the admin layer (`ecosystem_staff`, `invitation_codes`,
+  `profiles.role`/`status`, super admin + delegation); Sprint 2 added the
+  curriculum structure (`curricula` + `curriculum_goals`, `grades` → `terms`
+  → `units` → `topics`, `learning_objectives`/`content`/`lessons`/
+  `teaching_guidance`, `activities`/`assessments` + shared `resources` via
+  `lesson_resources`, `projects` per unit, `curriculum_evaluations` per
+  curriculum). The old community layer
+  (`communities`, `community_members`, `problems`, `projects`) is gone —
+  Challenge and Project return redesigned in Sprints 5/6. Keep the RLS +
+  grants + `db:types` discipline from the DoD on every migration.

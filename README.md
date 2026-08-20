@@ -1,7 +1,7 @@
 # TheGuild
 
 An educational ecosystem where large-scale virtual communities solve real-world
-problems. Schools create classrooms, learners form teams, teams solve real
+problems. Schools create departments, learners form teams, teams solve real
 challenges into projects, and results roll up across alliances of schools —
 guided by mentors, at any scale.
 
@@ -50,9 +50,9 @@ Demo accounts (seeded):
 | ---- | ----- | -------- | ----------- |
 | Super admin | `superadmin@theguild.dev` | `superadmin-password` | Top level: creates + approves program admins, approves ecosystem admins, delegates approvals |
 | Program admin | `demo@theguild.dev` | `demo-password` | Creates ecosystem admins; approves them once the super admin delegates that authority |
-| Ecosystem admin | `ecoadmin@theguild.dev` | `ecoadmin-password` | Owns "Civic Labs Academy"; creates space admins |
-| Space admin | `spaceadmin@theguild.dev` | `spaceadmin-password` | Owns "Civic Prototyping Class"; generates invitation codes |
-| Learner | `learner@theguild.dev` | `learner-password` | Learner in "Civic Prototyping Class" |
+| Ecosystem admin | `ecoadmin@theguild.dev` | `ecoadmin-password` | Owns "A Sample School Ecosystem"; creates space admins |
+| Space admin | `spaceadmin@theguild.dev` | `spaceadmin-password` | Owns "Primary Mathematics Space"; generates invitation codes |
+| Learner | `learner@theguild.dev` | `learner-password` | Learner in "Primary Mathematics Space" |
 
 To try the full onboarding flow, sign in as `superadmin@theguild.dev`,
 create a program admin (starts pending), approve it, then sign in as that
@@ -77,11 +77,14 @@ approval authority to the program admin and approve from the program console.
 
 ```
 src/
-  app/            # routes: /, /login, /dashboard, /setup-password, /console/*
+  app/            # routes: /, /login, /dashboard, /setup-password, /console/*,
+                  #   /spaces/[slug], /spaces/[slug]/lessons/[id] and /new
   components/ui/  # shadcn/ui components
   components/console/  # client forms for the admin consoles
+  components/spaces/   # client forms for lessons (publish + progress)
   lib/supabase/   # browser + server clients, generated DB types
   actions/console.ts   # server actions for the onboarding flow
+  actions/lessons.ts   # server actions for lessons (publish, status, progress)
   proxy.ts        # session-refresh proxy (Next 16 "middleware")
 supabase/
   migrations/     # SQL migrations (schema + RLS + grants)
@@ -96,7 +99,8 @@ docs/
 
 `Ecosystem → Space → SpaceMembership`, with per-space roles
 (`teacher`/`learner`/`mentor`/`collaborator`/`admin`), plus an admin layer for
-onboarding.
+onboarding and a lesson delivery cycle (curriculum → scheme → lesson design →
+delivery → evidence).
 
 - `profiles` — users with a platform-level `role`
   (`super_admin`/`program_admin`/`ecosystem_admin`/`space_admin`/`member`), an
@@ -110,13 +114,27 @@ onboarding.
 - `ecosystem_staff` — who administers an ecosystem
   (`user_id` + `ecosystem_id`, role `ecosystem_admin`); auto-created when an
   ecosystem is made.
-- `spaces` — containers inside an ecosystem (classroom, innovation_hub,
+- `spaces` — containers inside an ecosystem (department, innovation_hub,
   project_group).
 - `space_memberships` — the flexible per-space role link
   (`UNIQUE (space_id, user_id)`); the space creator is auto-added as `admin`.
 - `invitation_codes` — join codes for a space; a signup redeems a code and the
   subscriber is added as a member with the code's role. One ecosystem per
   creator is enforced via `ecosystems_one_per_creator`.
+- `curricula` + `curriculum_standards` — the standards a lesson can map to
+  (publicly readable).
+- `schemes_of_work` + `scheme_items` — a teacher's plan for a subject/term,
+  broken into weekly topics that map to standards.
+- `lessons` + `objectives` + `activities` + `resources` — reusable lesson
+  design: a lesson (status `draft`/`ready`/`delivered`) with learning
+  objectives (and success criteria), activities
+  (introduce/demonstrate/practice/discuss/assess) and resources
+  (link/video/document/text).
+- `sessions` + `objective_results` — the delivery event and the evidence:
+  each session records who taught (and optionally which learner self-tracked),
+  and each objective gets a status
+  (`not_attempted`/`developing`/`achieved`/`mastered`) per
+  session+objective+learner.
 
 Admins onboard down the chain: the super admin creates and approves program
 admins (pending until approved); program admins create ecosystem admins
@@ -128,8 +146,12 @@ program admin (`can_approve_ecosystem_admins`). Consoles live at
 `/console/super`, `/console/program`, `/console/ecosystem`, and
 `/console/space`.
 
-Content (Sprint 2), Teams (Sprint 4), Challenge (Sprint 5), and Project
-(Sprint 6) tables are planned; see `docs/agile/SPRINT_PLAN.md`.
+Learning routes: `/spaces/[slug]` (space home + lesson library + roster),
+`/spaces/[slug]/lessons/[id]` (lesson view + objective progress),
+`/spaces/[slug]/lessons/new` (publish for staff).
+
+Teams (Sprint 4), Challenge (Sprint 5), and Project (Sprint 6) tables are
+planned; see `docs/agile/SPRINT_PLAN.md`.
 
 ## Engineering process
 
