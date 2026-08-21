@@ -546,9 +546,9 @@ export async function approveSpaceEdit(formData: FormData) {
   const editId = String(formData.get("edit_id") ?? "");
 
   if (!profile || profile.role !== "ecosystem_admin" || profile.status !== "approved") {
-    redirect("/dashboard?error=unauthorized");
+    redirect("/?error=unauthorized");
   }
-  if (!editId) redirect("/dashboard?error=missing-id");
+  if (!editId) redirect("/?error=missing-id");
 
   const supabase = await createClient();
   const { data: edit, error: editError } = await supabase
@@ -558,11 +558,11 @@ export async function approveSpaceEdit(formData: FormData) {
     .single();
 
   if (editError || !edit) {
-    redirect("/dashboard?error=invalid-edit");
+    redirect("/?error=invalid-edit");
   }
 
   if (edit.status !== "pending") {
-    redirect("/dashboard?error=edit-already-processed");
+    redirect("/?error=edit-already-processed");
   }
 
   // Apply changes to spaces table
@@ -573,10 +573,10 @@ export async function approveSpaceEdit(formData: FormData) {
     .select("id");
 
   if (updateError) {
-    redirect(`/dashboard?error=${encodeURIComponent(updateError.message)}`);
+    redirect(`/?error=${encodeURIComponent(updateError.message)}`);
   }
   if (!updatedRows || updatedRows.length === 0) {
-    redirect("/dashboard?error=space-update-failed");
+    redirect("/?error=space-update-failed");
   }
 
   // Mark edit as approved
@@ -595,7 +595,7 @@ export async function approveSpaceEdit(formData: FormData) {
       ? requestedChanges.slug
       : edit.spaces?.slug;
   revalidatePath("/", "layout");
-  if (!newSlug) redirect("/dashboard?space_edit_approved=1");
+  if (!newSlug) redirect("/?space_edit_approved=1");
   redirect(`/spaces/${newSlug}?space_edit_approved=1`);
 }
 
@@ -612,9 +612,9 @@ export async function rejectSpaceEdit(formData: FormData) {
     profile.role !== "ecosystem_admin" ||
     profile.status !== "approved"
   ) {
-    redirect("/dashboard?error=unauthorized");
+    redirect("/?error=unauthorized");
   }
-  if (!editId) redirect("/dashboard?error=missing-id");
+  if (!editId) redirect("/?error=missing-id");
 
   const supabase = await createClient();
   const { data: edit, error: editError } = await supabase
@@ -624,11 +624,11 @@ export async function rejectSpaceEdit(formData: FormData) {
     .single();
 
   if (editError || !edit) {
-    redirect("/dashboard?error=invalid-edit");
+    redirect("/?error=invalid-edit");
   }
 
   if (edit.status !== "pending") {
-    redirect("/dashboard?error=edit-already-processed");
+    redirect("/?error=edit-already-processed");
   }
 
   const { error } = await supabase
@@ -640,10 +640,10 @@ export async function rejectSpaceEdit(formData: FormData) {
     })
     .eq("id", editId);
 
-  if (error) redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`/?error=${encodeURIComponent(error.message)}`);
 
   revalidatePath("/spaces/[slug]", "page");
   const slug = edit.spaces?.slug;
-  if (!slug) redirect("/dashboard?space_edit_rejected=1");
+  if (!slug) redirect("/?space_edit_rejected=1");
   redirect(`/spaces/${slug}?space_edit_rejected=1`);
 }

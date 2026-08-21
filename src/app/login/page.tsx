@@ -81,10 +81,10 @@ export default function LoginPage() {
           if (membership?.spaces?.slug) {
             router.push(`/spaces/${membership.spaces.slug}`);
           } else {
-            router.push("/dashboard");
+            router.push("/");
           }
         } else {
-          router.push("/dashboard");
+          router.push("/");
         }
       }
       router.refresh();
@@ -134,7 +134,7 @@ export default function LoginPage() {
     }
 
     router.refresh();
-    router.push("/dashboard");
+    router.push("/");
   }
 
   return (

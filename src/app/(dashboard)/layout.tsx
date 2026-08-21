@@ -11,7 +11,6 @@ import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   SPACE_TYPE_ORDER,
-  SPACE_TYPE_NAV_LABELS,
   type SpaceType,
 } from "@/lib/ecosystems";
 
@@ -33,49 +32,19 @@ export default async function DashboardRootLayout({
     .single();
   if (profile?.must_change_password) redirect("/setup-password");
 
-  const groups: DashboardNavGroup[] = [
-    {
-      label: "Overview",
-      items: [{ href: "/dashboard", label: "Dashboard" }],
-    },
-  ];
-
-  const { data: memberships } = await supabase
-    .from("space_memberships")
-    .select("spaces(id, name, slug, type)");
-
-  const spacesByType = new Map<SpaceType, { href: string; label: string }[]>();
-  for (const membership of memberships ?? []) {
-    const space = membership.spaces;
-    if (!space) continue;
-    const type = space.type as SpaceType;
-    const item = { href: `/spaces/${space.slug ?? space.id}`, label: space.name };
-    const items = spacesByType.get(type) ?? [];
-    if (!items.some((existing) => existing.href === item.href)) {
-      items.push(item);
-      spacesByType.set(type, items);
-    }
-  }
-  for (const type of SPACE_TYPE_ORDER) {
-    const items = spacesByType.get(type);
-    if (items && items.length > 0) {
-      groups.push({ label: SPACE_TYPE_NAV_LABELS[type], items });
-    }
-  }
-
   const role = profile?.role;
-  const adminItems: { href: string; label: string }[] = [];
+  const groups: DashboardNavGroup[] = [];
+
   if (
     (role === "super_admin" || role === "program_admin") &&
     profile?.status === "approved"
   ) {
-    adminItems.push({ href: "/admin", label: "Admin" });
-  }
-  if (adminItems.length > 0) {
-    groups.push({ label: "Administration", items: adminItems });
+    groups.push({
+      label: "Overview",
+      items: [{ href: "/admin", label: "Admin" }],
+    });
   }
 
-  const ecosystemItems: { href: string; label: string }[] = [];
   if (role === "ecosystem_admin" && profile?.status === "approved") {
     const { data: ecosystem } = await supabase
       .from("ecosystems")
@@ -83,17 +52,58 @@ export default async function DashboardRootLayout({
       .eq("created_by", user.id)
       .maybeSingle();
     if (ecosystem) {
-      ecosystemItems.push(
-        { href: `/ecosystem/${ecosystem.id}`, label: "Ecosystem" },
-        { href: `/ecosystem/${ecosystem.id}/spaces`, label: "Spaces" },
-        { href: `/ecosystem/${ecosystem.id}/staff`, label: "Staff" },
-      );
+      groups.push({
+        label: "Overview",
+        items: [{ href: `/ecosystem/${ecosystem.id}`, label: "Ecosystem" }],
+      });
+      groups.push({
+        label: "Ecosystem",
+        items: [
+          { href: `/ecosystem/${ecosystem.id}/spaces`, label: "Spaces" },
+          { href: `/ecosystem/${ecosystem.id}/staff`, label: "Staff" },
+        ],
+      });
     } else {
-      ecosystemItems.push({ href: "/ecosystem", label: "Create ecosystem" });
+      groups.push({
+        label: "Overview",
+        items: [{ href: "/ecosystem", label: "Create ecosystem" }],
+      });
     }
   }
-  if (ecosystemItems.length > 0) {
-    groups.push({ label: "Ecosystem", items: ecosystemItems });
+
+  if (
+    role !== "super_admin" &&
+    role !== "program_admin" &&
+    role !== "ecosystem_admin"
+  ) {
+    const { data: memberships } = await supabase
+      .from("space_memberships")
+      .select("spaces(id, name, slug, type)");
+
+    const spacesByType = new Map<SpaceType, { href: string; label: string }[]>();
+    for (const membership of memberships ?? []) {
+      const space = membership.spaces;
+      if (!space) continue;
+      const type = space.type as SpaceType;
+      const item = { href: `/spaces/${space.slug ?? space.id}`, label: space.name };
+      const items = spacesByType.get(type) ?? [];
+      if (!items.some((existing) => existing.href === item.href)) {
+        items.push(item);
+        spacesByType.set(type, items);
+      }
+    }
+
+    const spaceItems: { href: string; label: string }[] = [];
+    for (const type of SPACE_TYPE_ORDER) {
+      const items = spacesByType.get(type);
+      if (items && items.length > 0) {
+        spaceItems.push(...items);
+      }
+    }
+
+    if (spaceItems.length > 0) {
+      groups.push({ label: "Spaces", items: spaceItems });
+    }
   }
 
   const mobileItems = groups.flatMap((group) => group.items);

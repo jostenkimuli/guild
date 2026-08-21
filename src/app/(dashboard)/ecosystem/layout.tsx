@@ -19,8 +19,7 @@ export default async function EcosystemLayout({
     .select("id, role, status, ecosystem_type")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "ecosystem_admin") redirect("/dashboard");
-
+  if (!profile || profile.role !== "ecosystem_admin") redirect("/");
   if (profile.status !== "approved") {
     return (
       <div className="mx-auto w-full max-w-3xl p-6">

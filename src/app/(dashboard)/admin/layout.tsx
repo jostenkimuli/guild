@@ -24,7 +24,7 @@ export default async function AdminLayout({
     (profile.role !== "super_admin" && profile.role !== "program_admin") ||
     profile.status !== "approved"
   ) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   return <>{children}</>;

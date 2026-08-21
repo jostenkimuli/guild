@@ -23,8 +23,8 @@ export default async function EcosystemDetailLayout({
     .select("id, role, status")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "ecosystem_admin") redirect("/dashboard");
-  if (profile.status !== "approved") redirect("/dashboard");
+  if (!profile || profile.role !== "ecosystem_admin") redirect("/");
+  if (profile.status !== "approved") redirect("/");
 
   const { data: ecosystem } = await supabase
     .from("ecosystems")
@@ -34,7 +34,7 @@ export default async function EcosystemDetailLayout({
 
   if (!ecosystem) notFound();
 
-  if (ecosystem.created_by !== user.id) redirect("/dashboard");
+  if (ecosystem.created_by !== user.id) redirect("/");
 
   return <>{children}</>;
 }

@@ -30,14 +30,14 @@ export default async function AdminPage({
     .select("role, status, can_approve_ecosystem_admins")
     .eq("id", user.id)
     .single();
-  if (!profile) redirect("/dashboard");
+  if (!profile) redirect("/");
 
   const isSuperAdmin =
     profile.role === "super_admin" && profile.status === "approved";
   const isProgramAdmin =
     profile.role === "program_admin" && profile.status === "approved";
 
-  if (!isSuperAdmin && !isProgramAdmin) redirect("/dashboard");
+  if (!isSuperAdmin && !isProgramAdmin) redirect("/");
 
   // Super admin sees pending program admins
   let pendingPrograms: {

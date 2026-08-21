@@ -23,8 +23,8 @@ export default async function EcosystemStaffPage({
     .select("role, status")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "ecosystem_admin") redirect("/dashboard");
-  if (profile.status !== "approved") redirect("/dashboard");
+  if (!profile || profile.role !== "ecosystem_admin") redirect("/");
+  if (profile.status !== "approved") redirect("/");
 
   const { data: ecosystem } = await supabase
     .from("ecosystems")

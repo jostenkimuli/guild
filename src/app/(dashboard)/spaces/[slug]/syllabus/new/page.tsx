@@ -23,7 +23,7 @@ export default async function NewSyllabusPage({
     .eq("slug", slug)
     .maybeSingle();
 
-  if (!space) redirect("/dashboard");
+  if (!space) redirect("/");
 
   const { data: membership } = await supabase
     .from("space_memberships")

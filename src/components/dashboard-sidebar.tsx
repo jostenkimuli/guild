@@ -17,7 +17,7 @@ export function DashboardSidebar({ groups }: { groups: DashboardNavGroup[] }) {
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r bg-muted/40 sm:flex">
-      <Link href="/dashboard" className="border-b px-4 py-4">
+      <Link href="/" className="border-b px-4 py-4">
         <p className="text-sm font-semibold tracking-tight">TheGuild</p>
         <p className="text-xs text-muted-foreground">Your workspace</p>
       </Link>

@@ -61,7 +61,7 @@ export default function SetupPasswordPage() {
         .eq("id", user.id);
     }
 
-    router.replace("/dashboard");
+    router.replace("/");
     router.refresh();
   }
 

@@ -30,7 +30,7 @@ export default async function AdminEcosystemAdminsPage({
     (profile.role !== "super_admin" && profile.role !== "program_admin") ||
     profile.status !== "approved"
   ) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   const { data: ecosystemAdmins } = await supabase

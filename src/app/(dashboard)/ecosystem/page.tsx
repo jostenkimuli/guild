@@ -17,8 +17,8 @@ export default async function EcosystemRootPage() {
     .select("id, role, status, ecosystem_type")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "ecosystem_admin") redirect("/dashboard");
-  if (profile.status !== "approved") redirect("/dashboard");
+  if (!profile || profile.role !== "ecosystem_admin") redirect("/");
+  if (profile.status !== "approved") redirect("/");
 
   const { data: ecosystems } = await supabase
     .from("ecosystems")

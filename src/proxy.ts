@@ -34,8 +34,7 @@ export async function proxy(request: NextRequest) {
 
   if (
     !user &&
-    (url.pathname.startsWith("/dashboard") ||
-      url.pathname.startsWith("/admin") ||
+    (url.pathname.startsWith("/admin") ||
       url.pathname.startsWith("/ecosystem") ||
       url.pathname.startsWith("/spaces") ||
       url.pathname === "/setup-password")
@@ -44,7 +43,23 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && ["/login", "/signup"].includes(url.pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, status")
+      .eq("id", user.id)
+      .maybeSingle();
+    const role = profile?.role;
+    const status = profile?.status;
+    if (
+      (role === "super_admin" || role === "program_admin") &&
+      status === "approved"
+    ) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+    if (role === "ecosystem_admin" && status === "approved") {
+      return NextResponse.redirect(new URL("/ecosystem", request.url));
+    }
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return supabaseResponse;

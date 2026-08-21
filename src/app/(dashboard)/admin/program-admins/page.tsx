@@ -30,7 +30,7 @@ export default async function AdminProgramAdminsPage({
     profile.role !== "super_admin" ||
     profile.status !== "approved"
   ) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   const { data: programAdmins } = await supabase
