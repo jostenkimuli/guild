@@ -2,8 +2,8 @@ import {
   approveProgramAdmin,
   setProgramAdminDelegation,
 } from "@/app/actions/console";
-import { ConsolePanel } from "@/components/console/panels";
-import { CreateProgramAdminForm } from "@/components/console/forms";
+import { ConsolePanel, EmptyState } from "@/components/console/panels";
+import { CreateProgramAdminDialog } from "@/components/console/create-program-admin-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -62,13 +62,6 @@ export default async function SuperConsolePage({
       ) : null}
 
       <ConsolePanel
-        title="Create a program admin"
-        description="The account starts as pending and cannot create ecosystem admins until you approve it."
-      >
-        <CreateProgramAdminForm />
-      </ConsolePanel>
-
-      <ConsolePanel
         title="Pending program admins"
         description="Approve a program admin to let them create ecosystem-admin accounts."
       >
@@ -106,11 +99,12 @@ export default async function SuperConsolePage({
         )}
       </ConsolePanel>
 
-      {approvedPrograms.length > 0 ? (
-        <ConsolePanel
-          title="Program admins"
-          description="Delegate ecosystem-admin approvals to a program admin, or keep them with the super admin."
-        >
+      <ConsolePanel
+        title="Program admins"
+        description="Delegate ecosystem-admin approvals to a program admin, or keep them with the super admin."
+        footer={<CreateProgramAdminDialog />}
+      >
+        {approvedPrograms.length > 0 ? (
           <div className="space-y-2">
             {approvedPrograms.map((admin) => {
               const delegated = admin.can_approve_ecosystem_admins;
@@ -150,8 +144,12 @@ export default async function SuperConsolePage({
               );
             })}
           </div>
-        </ConsolePanel>
-      ) : null}
+        ) : (
+          <EmptyState>
+            No approved program admins yet. Create one to get started.
+          </EmptyState>
+        )}
+      </ConsolePanel>
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { CreateSpaceAdminForm } from "@/components/console/forms";
+import { CreateSpaceAdminDialog } from "@/components/console/create-space-admin-dialog";
 import { ConsolePanel, EmptyState } from "@/components/console/panels";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
@@ -40,17 +40,16 @@ export default async function EcosystemStaffPage() {
   return (
     <section className="space-y-4">
       <ConsolePanel
-        title="Create a space admin"
-        description="Space admins manage the spaces you create and generate invitation codes for them."
+        title="Space admins"
+        description="Everyone who runs spaces in this ecosystem."
+        footer={
+          <CreateSpaceAdminDialog ecosystemId={ecosystem.id} />
+        }
       >
-        <CreateSpaceAdminForm ecosystemId={ecosystem.id} />
-      </ConsolePanel>
-
-      <ConsolePanel title="Space admins" description="Everyone who runs spaces in this ecosystem.">
         {spaceAdmins.length > 0 ? (
-          <div className="space-y-2">
+          <ul className="space-y-2">
             {spaceAdmins.map((admin) => (
-              <div
+              <li
                 key={admin.id}
                 className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
               >
@@ -61,12 +60,12 @@ export default async function EcosystemStaffPage() {
                   </Badge>
                 </p>
                 <p className="text-xs text-muted-foreground">{admin.username}</p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         ) : (
           <EmptyState>
-            No space admins yet. Create one above to get started.
+            No space admins yet. Create one to get started.
           </EmptyState>
         )}
       </ConsolePanel>

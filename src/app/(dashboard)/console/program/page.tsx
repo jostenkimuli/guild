@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { approveEcosystemAdmin } from "@/app/actions/console";
-import { ConsolePanel } from "@/components/console/panels";
-import { CreateEcosystemAdminForm } from "@/components/console/forms";
+import { ConsolePanel, EmptyState } from "@/components/console/panels";
+import { CreateEcosystemAdminDialog } from "@/components/console/create-ecosystem-admin-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -54,22 +54,13 @@ export default async function ProgramConsolePage({
 
       <section className="mt-4 space-y-4">
         <ConsolePanel
-          title="Create an ecosystem admin"
-          description={`The account starts as pending and ecosystem creation stays disabled until it is approved${
-            delegated ? " (approval is delegated to you)." : " by the super admin."
-          }`}
-        >
-          <CreateEcosystemAdminForm />
-        </ConsolePanel>
-
-        <ConsolePanel
-          title="Pending ecosystem admins"
-          description={
-            delegated
-              ? "The super admin delegated these approvals to you."
-              : "Awaiting super admin approval. Ask the super admin to delegate approvals to you if you should approve these."
-          }
-        >
+        title="Pending ecosystem admins"
+        description={
+          delegated
+            ? "The super admin delegated these approvals to you."
+            : "Awaiting super admin approval. Ask the super admin to delegate approvals to you if you should approve these."
+        }
+      >
           {pending.length > 0 ? (
             <div className="space-y-2">
               {pending.map((admin) => (
@@ -113,8 +104,11 @@ export default async function ProgramConsolePage({
           )}
         </ConsolePanel>
 
-        {approved.length > 0 ? (
-          <ConsolePanel title="Approved ecosystem admins">
+        <ConsolePanel
+          title="Approved ecosystem admins"
+          footer={<CreateEcosystemAdminDialog />}
+        >
+          {approved.length > 0 ? (
             <div className="space-y-2">
               {approved.map((admin) => (
                 <div
@@ -135,8 +129,12 @@ export default async function ProgramConsolePage({
                 </div>
               ))}
             </div>
-          </ConsolePanel>
-        ) : null}
+          ) : (
+            <EmptyState>
+              No approved ecosystem admins yet. Create one to get started.
+            </EmptyState>
+          )}
+        </ConsolePanel>
       </section>
     </>
   );

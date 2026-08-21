@@ -6,12 +6,15 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { ecosystemDisplayName } from "@/lib/ecosystems";
-import { SpaceEditForm } from "@/components/console/SpaceEditForm";
+import { SpaceEditDialog } from "@/components/console/space-edit-dialog";
+import { CurriculumDialog } from "@/components/console/curriculum-dialog";
+import { SyllabiSection } from "@/components/spaces/syllabi-section";
 import {
   approveSpaceEdit,
   rejectSpaceEdit,
@@ -59,7 +62,6 @@ export default async function SpacePage({
     .maybeSingle();
 
   const isMember = membership !== null;
-  const isSpaceAdmin = membership?.role === "admin";
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -67,8 +69,23 @@ export default async function SpacePage({
     .eq("id", user.id)
     .maybeSingle();
 
+  // Ecosystem admins govern every space of their ecosystem: scope the
+  // ecosystem-admin role to this space's ecosystem and treat them as an
+  // in-space admin too.
+  const { data: staff } = await supabase
+    .from("ecosystem_staff")
+    .select("role")
+    .eq("ecosystem_id", space.ecosystem_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   const isEcosystemAdmin =
-    profile?.role === "ecosystem_admin" && profile?.status === "approved";
+    staff?.role === "ecosystem_admin" &&
+    profile?.role === "ecosystem_admin" &&
+    profile?.status === "approved";
+
+  const isSpaceAdmin = membership?.role === "admin" || isEcosystemAdmin;
+const isStaff = membership?.role === "admin" || membership?.role === "teacher" || isEcosystemAdmin;
 
   let pendingEdits: PendingEdit[] = [];
   if (isEcosystemAdmin) {
@@ -85,8 +102,22 @@ export default async function SpacePage({
 
   const { data: memberships } = await supabase
     .from("space_memberships")
-    .select("role, profiles(display_name)")
+    .select("user_id, role, profiles(display_name)")
     .eq("space_id", space.id);
+
+  // Ecosystem admins govern the space from ecosystem_staff; hide them from
+  // the members list.
+  const { data: ecosystemAdminRows } = await supabase
+    .from("ecosystem_staff")
+    .select("user_id")
+    .eq("ecosystem_id", space.ecosystem_id)
+    .eq("role", "ecosystem_admin");
+  const ecosystemAdminIds = new Set(
+    (ecosystemAdminRows ?? []).map((row) => row.user_id),
+  );
+  const visibleMemberships = (memberships ?? []).filter(
+    (membership) => !ecosystemAdminIds.has(membership.user_id),
+  );
 
   const { data: latestEdit } = await supabase
     .from("space_edits")
@@ -96,6 +127,38 @@ export default async function SpacePage({
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // Ecosystem admins manage the curriculum: fetch the full tree
+  // (curriculum → grades → terms → units → topics) plus goals.
+  let curricula: CurriculumTreeEntry[] = [];
+  if (isEcosystemAdmin) {
+    const { data } = await supabase
+      .from("curricula")
+      .select(
+        "id, name, year, is_published, curriculum_goals(id, description), grades(name, id, terms(id))",
+      )
+      .eq("space_id", space.id)
+      .order("name", { ascending: true });
+    curricula = (data ?? []) as unknown as CurriculumTreeEntry[];
+  }
+
+  let staffSyllabi: {
+    id: string;
+    curriculum_id: string;
+    grading_policy: { pass_mark?: number; grade_breakdown: { label: string; weight_pct: number }[] } | null;
+    required_materials: string | null;
+    office_hours: string | null;
+    classroom_expectations: string | null;
+    curricula: { name: string; year: number } | null;
+  }[] = [];
+  if (isStaff) {
+    const { data: syb } = await supabase
+      .from("syllabi")
+      .select("id, curriculum_id, grading_policy, required_materials, office_hours, classroom_expectations, curricula(name, year)")
+      .eq("curricula.space_id", space.id)
+      .order("created_at");
+    staffSyllabi = (syb ?? []) as typeof staffSyllabi;
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl p-6">
@@ -116,7 +179,14 @@ export default async function SpacePage({
         </div>
       </header>
 
-      {isEcosystemAdmin ? <PendingSpaceEdits edits={pendingEdits} /> : null}
+      {isEcosystemAdmin && pendingEdits.length > 0 ? (
+        <PendingSpaceEdits edits={pendingEdits} />
+      ) : null}
+
+      <SyllabiSection
+        curricula={curricula}
+        syllabiRows={staffSyllabi}
+      />
 
       {!isMember && !isEcosystemAdmin ? (
         <Card className="mt-8">
@@ -130,21 +200,15 @@ export default async function SpacePage({
         </Card>
       ) : (
         <>
-          {isSpaceAdmin ? (
-            <div className="mt-8">
-              <SpaceEditForm space={space} latestEdit={latestEdit} />
-            </div>
-          ) : null}
-
           <section className="mt-8 space-y-4">
             <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
               Members
             </h2>
             <Card>
               <CardContent className="pt-6">
-                {memberships && memberships.length > 0 ? (
+                {visibleMemberships.length > 0 ? (
                   <ul className="divide-y">
-                    {memberships.map((membership) => (
+                    {visibleMemberships.map((membership) => (
                       <li
                         key={`${membership.profiles?.display_name}-${membership.role}`}
                         className="flex items-center justify-between py-2"
@@ -162,13 +226,129 @@ export default async function SpacePage({
                   </p>
                 )}
               </CardContent>
+              {isSpaceAdmin ? (
+                <CardFooter className="justify-end border-t pt-4">
+                  <SpaceEditDialog
+                    space={space}
+                    latestEdit={latestEdit}
+                  />
+                </CardFooter>
+              ) : null}
             </Card>
           </section>
+
+          {isEcosystemAdmin ? (
+            <section className="mt-8 space-y-4">
+              <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                Curriculum
+              </h2>
+              <Card>
+                <CardContent className="pt-6">
+                  {curricula.length > 0 ? (
+                    <ul className="divide-y">
+                      {curricula.map((curriculum) => (
+                        <li
+                          key={curriculum.id}
+                          className="space-y-2 py-3"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-2 text-sm font-medium">
+                              {curriculum.name}
+                              <Badge
+                                variant={
+                                  curriculum.is_published
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                              >
+                                {curriculum.is_published
+                                  ? "Published"
+                                  : "Draft"}
+                              </Badge>
+                            </span>
+                            <Badge variant="secondary">
+                              Year {curriculum.year}
+                            </Badge>
+                          </div>
+
+                          {curriculum.curriculum_goals?.length ? (
+                            <ul className="space-y-0.5 text-sm text-muted-foreground">
+                              {curriculum.curriculum_goals.map((goal) => (
+                                <li key={goal.id}>
+                                  <span className="text-xs uppercase tracking-wide text-muted-foreground/70">
+                                    Goal:
+                                  </span>{" "}
+                                  {goal.description}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+
+                          {curriculum.grades?.length ? (
+                            <ul className="space-y-1 pl-2 text-sm">
+                              {curriculum.grades.map((grade) => (
+                                <li key={grade.id} className="text-sm">
+                                  <span className="font-medium">
+                                    {grade.name}
+                                  </span>
+                                  {grade.terms?.length ? (
+                                    <span className="text-muted-foreground">
+                                      {" "}
+                                      ({grade.terms.length}{" "}
+                                      {grade.terms.length === 1
+                                        ? "term"
+                                        : "terms"}
+                                      )
+                                    </span>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              No grades yet.
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No curriculum yet.
+                    </p>
+                  )}
+                </CardContent>
+                <CardFooter className="justify-end border-t pt-4">
+                  <CurriculumDialog
+                    space={{ id: space.id }}
+                    curricula={curricula.map((entry) => ({
+                      id: entry.id,
+                      name: entry.name,
+                      year: entry.year,
+                    }))}
+                  />
+                </CardFooter>
+              </Card>
+            </section>
+          ) : null}
         </>
       )}
     </div>
   );
 }
+
+type CurriculumTreeEntry = {
+  id: string;
+  name: string;
+  year: number;
+  is_published: boolean | null;
+  curriculum_goals: { id: string; description: string }[] | null;
+  grades: {
+    id: string;
+    name: string;
+    terms: { id: string }[] | null;
+  }[] | null;
+};
 
 type PendingEdit = {
   id: string;
@@ -183,67 +363,53 @@ function PendingSpaceEdits({ edits }: { edits: PendingEdit[] }) {
       <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
         Pending space edit requests
       </h2>
-      {edits.length > 0 ? (
-        edits.map((edit) => {
-          const changes = (edit.changes ?? {}) as Record<string, unknown>;
-          const requested = Object.entries(changes).filter(
-            ([, value]) => typeof value === "string" && value.length > 0,
-          );
-          return (
-            <Card key={edit.id}>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">
-                  {edit.profiles?.display_name ?? "A space admin"} requested an
-                  edit
-                </CardTitle>
-                <CardDescription>
-                  Submitted {formatDate(edit.created_at)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {requested.length > 0 ? (
-                  <ul className="space-y-1 text-sm">
-                    {requested.map(([field, value]) => (
-                      <li key={field}>
-                        <span className="font-medium capitalize">
-                          {field}:
-                        </span>{" "}
-                        {String(value)}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <div className="flex gap-2">
-                  <form action={approveSpaceEdit}>
-                    <input type="hidden" name="edit_id" value={edit.id} />
-                    <Button type="submit" size="sm">
-                      Approve
-                    </Button>
-                  </form>
-                  <form action={rejectSpaceEdit}>
-                    <input type="hidden" name="edit_id" value={edit.id} />
-                    <Button type="submit" size="sm" variant="outline">
-                      Reject
-                    </Button>
-                  </form>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              No pending edit requests
-            </CardTitle>
-            <CardDescription>
-              Space admin edit requests for this space will appear here for
-              your approval.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+      {edits.map((edit) => {
+        const changes = (edit.changes ?? {}) as Record<string, unknown>;
+        const requested = Object.entries(changes).filter(
+          ([, value]) => typeof value === "string" && value.length > 0,
+        );
+        return (
+          <Card key={edit.id}>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">
+                {edit.profiles?.display_name ?? "A space admin"} requested an
+                edit
+              </CardTitle>
+              <CardDescription>
+                Submitted {formatDate(edit.created_at)}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {requested.length > 0 ? (
+                <ul className="space-y-1 text-sm">
+                  {requested.map(([field, value]) => (
+                    <li key={field}>
+                      <span className="font-medium capitalize">
+                        {field}:
+                      </span>{" "}
+                      {String(value)}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <div className="flex gap-2">
+                <form action={approveSpaceEdit}>
+                  <input type="hidden" name="edit_id" value={edit.id} />
+                  <Button type="submit" size="sm">
+                    Approve
+                  </Button>
+                </form>
+                <form action={rejectSpaceEdit}>
+                  <input type="hidden" name="edit_id" value={edit.id} />
+                  <Button type="submit" size="sm" variant="outline">
+                    Reject
+                  </Button>
+                </form>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </section>
   );
 }

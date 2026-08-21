@@ -243,8 +243,8 @@ on conflict (code) do nothing;
 -- ============================================================
 
 -- curricula: the Primary Mathematics curriculum under the space
-insert into public.curricula (space_id, name, year)
-select s.id, 'Primary Mathematics', 2026
+insert into public.curricula (space_id, name, year, is_published, published_at)
+select s.id, 'Primary Mathematics', 2026, true, now()
 from public.spaces as s
 where s.slug = 'primary-mathematics'
   and not exists (select 1 from public.curricula where name = 'Primary Mathematics');
@@ -939,11 +939,13 @@ where c.name = 'Primary Mathematics'
   and not exists (select 1 from public.curriculum_evaluations where curriculum_id = c.id and period = 'Term 2 2026');
 
 -- syllabus for Primary Mathematics
-insert into public.syllabi (curriculum_id, grading_policy, required_materials, instructor_notes, teacher_id)
+insert into public.syllabi (curriculum_id, grading_policy, required_materials, instructor_notes, office_hours, classroom_expectations, teacher_id)
 select c.id,
   '{"pass_mark": 50, "grade_breakdown": [{"label": "Homework", "weight_pct": 20}, {"label": "Mid-term exam", "weight_pct": 30}, {"label": "Final exam", "weight_pct": 50}]}'::jsonb,
   'Scientific calculator, ruler, protractor, set squares, graph paper',
   'Office hours: Tuesdays and Thursdays 3-4pm. Contact: demo@theguild.dev',
+  'Tuesdays and Thursdays 3-4pm',
+  'Bring all materials and homework to every class.',
   (select id from public.profiles where display_name = 'Demo User' limit 1)
 from public.curricula as c
 where c.name = 'Primary Mathematics'

@@ -19,6 +19,34 @@ async function getProfile() {
   return user;
 }
 
+async function isApprovedEcosystemAdminOfSpaceId(
+  userId: string,
+  spaceId: string,
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, status")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.role !== "ecosystem_admin" || profile?.status !== "approved") {
+    return false;
+  }
+  const { data: space } = await supabase
+    .from("spaces")
+    .select("ecosystem_id")
+    .eq("id", spaceId)
+    .maybeSingle();
+  if (!space) return false;
+  const { data: staff } = await supabase
+    .from("ecosystem_staff")
+    .select("role")
+    .eq("ecosystem_id", space.ecosystem_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return staff?.role === "ecosystem_admin";
+}
+
 // ------------------------------------------------------------
 // Staff only: create or update a syllabus for a curriculum.
 // A syllabus wraps the curriculum's structural framework with
@@ -38,20 +66,27 @@ export async function createSyllabus(
     return { success: false, error: "Curriculum is required." };
   }
 
+  // Optional pass mark (default 50 if omitted)
   const passMarkRaw = Number(formData.get("pass_mark") ?? 50);
-  if (
-    !Number.isFinite(passMarkRaw) ||
-    passMarkRaw < 0 ||
-    passMarkRaw > 100
-  ) {
-    return {
-      success: false,
-      error: "Pass mark must be between 0 and 100.",
-    };
-  }
+  const passMark = Number.isFinite(passMarkRaw) && passMarkRaw >= 0 && passMarkRaw <= 100 ? passMarkRaw : 50;
 
-  const requiredMaterials = String(formData.get("required_materials") ?? "").trim();
-  const instructorNotes = String(formData.get("instructor_notes") ?? "").trim();
+  const officeHours = String(formData.get("office_hours") ?? "").trim();
+  const classroomExpectations = String(formData.get("classroom_expectations") ?? "").trim();
+
+  // Materials: accept JSON array string (chips) or newline-separated fallback
+  const materialsRaw = String(formData.get("required_materials") ?? "").trim();
+  let requiredMaterials: string[] = [];
+  if (materialsRaw) {
+    try {
+      const parsed = JSON.parse(materialsRaw);
+      if (Array.isArray(parsed)) {
+        requiredMaterials = parsed.map((s) => String(s).trim()).filter(Boolean);
+      }
+    } catch {
+      // Fallback: split on newlines (for legacy textarea)
+      requiredMaterials = materialsRaw.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    }
+  }
 
   // Build grading_policy JSON from structured form fields
   const breakdownCount = Number(formData.get("breakdown_count") ?? 0);
@@ -75,8 +110,17 @@ export async function createSyllabus(
     gradeBreakdown.push({ label, weight_pct: weightRaw });
   }
 
+  // Validate that breakdown totals 100%
+  const totalWeight = gradeBreakdown.reduce((sum, item) => sum + item.weight_pct, 0);
+  if (gradeBreakdown.length > 0 && totalWeight !== 100) {
+    return {
+      success: false,
+      error: "Grading components must total 100%.",
+    };
+  }
+
   const gradingPolicy: Json = {
-    pass_mark: passMarkRaw,
+    pass_mark: passMark,
     grade_breakdown: gradeBreakdown,
   };
 
@@ -100,7 +144,15 @@ export async function createSyllabus(
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (membership?.role !== "admin" && membership?.role !== "teacher") {
+  const isStaff =
+    membership?.role === "admin" || membership?.role === "teacher";
+
+  const isEcosystemAdmin = await isApprovedEcosystemAdminOfSpaceId(
+    user.id,
+    curriculum.space_id,
+  );
+
+  if (!isStaff && !isEcosystemAdmin) {
     return {
       success: false,
       error: "Only a teacher or admin can create a syllabus.",
@@ -114,13 +166,19 @@ export async function createSyllabus(
     .eq("curriculum_id", curriculumId)
     .maybeSingle();
 
+  // Determine the materials value to store (as text, newline-separated)
+  const materialsValue = requiredMaterials.length ? requiredMaterials.join('\n') : null;
+
   if (existing) {
     const { error } = await supabase
       .from("syllabi")
       .update({
         grading_policy: gradingPolicy,
-        required_materials: requiredMaterials || null,
-        instructor_notes: instructorNotes || null,
+        required_materials: materialsValue,
+        office_hours: officeHours || null,
+        classroom_expectations: classroomExpectations || null,
+        // instructor_notes intentionally omitted to preserve legacy column;
+        // new UI uses office_hours + classroom_expectations.
         teacher_id: user.id,
       })
       .eq("id", existing.id);
@@ -130,8 +188,10 @@ export async function createSyllabus(
     const { error } = await supabase.from("syllabi").insert({
       curriculum_id: curriculumId,
       grading_policy: gradingPolicy,
-      required_materials: requiredMaterials || null,
-      instructor_notes: instructorNotes || null,
+      required_materials: materialsValue,
+      office_hours: officeHours || null,
+      classroom_expectations: classroomExpectations || null,
+      // instructor_notes omitted for new UI; legacy column remains if previously set.
       teacher_id: user.id,
     });
 

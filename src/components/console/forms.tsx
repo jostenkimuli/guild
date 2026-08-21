@@ -62,11 +62,17 @@ function Feedback({ state }: { state: ConsoleActionState }) {
 
 export { Feedback };
 
-function useRefreshOnSuccess(state: ConsoleActionState) {
+function useRefreshOnSuccess(
+  state: ConsoleActionState,
+  onSuccess?: () => void,
+) {
   const router = useRouter();
   useEffect(() => {
-    if (state.success) router.refresh();
-  }, [state, router]);
+    if (state.success) {
+      onSuccess?.();
+      router.refresh();
+    }
+  }, [state, router, onSuccess]);
 }
 
 function CreateAdminAccountForm({
@@ -76,6 +82,7 @@ function CreateAdminAccountForm({
   hint,
   ecosystemId,
   showEcosystemType = false,
+  onSuccess,
 }: {
   idPrefix: string;
   action: (
@@ -86,11 +93,12 @@ function CreateAdminAccountForm({
   hint: string;
   ecosystemId?: string;
   showEcosystemType?: boolean;
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(action, {
     success: false,
   });
-  useRefreshOnSuccess(state);
+  useRefreshOnSuccess(state, onSuccess);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -156,18 +164,27 @@ function CreateAdminAccountForm({
   );
 }
 
-export function CreateProgramAdminForm() {
+export function CreateProgramAdminForm({
+  onSuccess,
+}: {
+  onSuccess?: () => void;
+}) {
   return (
     <CreateAdminAccountForm
       idPrefix="pa"
       action={createProgramAdmin}
       actionLabel="Create program admin"
       hint="The account starts pending and must be approved by the super admin before it can create ecosystem admins."
+      onSuccess={onSuccess}
     />
   );
 }
 
-export function CreateEcosystemAdminForm() {
+export function CreateEcosystemAdminForm({
+  onSuccess,
+}: {
+  onSuccess?: () => void;
+}) {
   return (
     <CreateAdminAccountForm
       idPrefix="ea"
@@ -175,6 +192,7 @@ export function CreateEcosystemAdminForm() {
       actionLabel="Create ecosystem admin"
       hint="The account starts pending. Approval is decided by the super admin, or by the program admin if the super admin has delegated approval to them."
       showEcosystemType
+      onSuccess={onSuccess}
     />
   );
 }

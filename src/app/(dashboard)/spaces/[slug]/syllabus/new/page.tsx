@@ -19,7 +19,7 @@ export default async function NewSyllabusPage({
 
   const { data: space } = await supabase
     .from("spaces")
-    .select("id, name")
+    .select("id, name, ecosystem_id")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -32,7 +32,29 @@ export default async function NewSyllabusPage({
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (membership?.role !== "admin" && membership?.role !== "teacher") {
+  const isStaff =
+    membership?.role === "admin" || membership?.role === "teacher";
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, status")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Ecosystem admins run every space of their ecosystem: allow them too.
+  const { data: staffRow } = await supabase
+    .from("ecosystem_staff")
+    .select("role")
+    .eq("ecosystem_id", space.ecosystem_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const isEcosystemAdmin =
+    staffRow?.role === "ecosystem_admin" &&
+    profile?.role === "ecosystem_admin" &&
+    profile?.status === "approved";
+
+  if (!isStaff && !isEcosystemAdmin) {
     redirect(`/spaces/${slug}`);
   }
 

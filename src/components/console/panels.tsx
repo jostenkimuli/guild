@@ -4,6 +4,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -14,15 +15,19 @@ export function ConsolePanel({
   title,
   description,
   children,
+  footer,
   className,
   contentClassName,
+  footerClassName,
 }: {
   id?: string;
   title: string;
   description?: string;
   children: ReactNode;
+  footer?: ReactNode;
   className?: string;
   contentClassName?: string;
+  footerClassName?: string;
 }) {
   return (
     <Card id={id} className={cn("scroll-mt-20", className)}>
@@ -31,6 +36,11 @@ export function ConsolePanel({
         {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>
       <CardContent className={contentClassName}>{children}</CardContent>
+      {footer ? (
+        <CardFooter className={cn("justify-end", footerClassName)}>
+          {footer}
+        </CardFooter>
+      ) : null}
     </Card>
   );
 }

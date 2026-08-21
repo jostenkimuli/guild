@@ -51,6 +51,29 @@ async function getProfile(): Promise<ProfileRow | null> {
   return data;
 }
 
+async function isApprovedEcosystemAdminOfSpace(
+  profile: ProfileRow,
+  spaceId: string,
+): Promise<boolean> {
+  if (profile.role !== "ecosystem_admin" || profile.status !== "approved") {
+    return false;
+  }
+  const supabase = await createClient();
+  const { data: space } = await supabase
+    .from("spaces")
+    .select("ecosystem_id")
+    .eq("id", spaceId)
+    .maybeSingle();
+  if (!space) return false;
+  const { data: staff } = await supabase
+    .from("ecosystem_staff")
+    .select("role")
+    .eq("ecosystem_id", space.ecosystem_id)
+    .eq("user_id", profile.id)
+    .maybeSingle();
+  return staff?.role === "ecosystem_admin";
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateAccountFields(
@@ -470,7 +493,13 @@ export async function editSpace(
     .eq("user_id", profile.id)
     .single();
 
-  if (!membership || membership.role !== "admin") {
+  const isMemberAdmin = membership?.role === "admin";
+  const isEcosystemAdmin = isApprovedEcosystemAdminOfSpace(
+    profile,
+    spaceId,
+  );
+
+  if (!isMemberAdmin && !isEcosystemAdmin) {
     return { success: false, error: "Only a space admin can request space edits." };
   }
 

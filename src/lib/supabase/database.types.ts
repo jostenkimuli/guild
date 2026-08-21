@@ -119,7 +119,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_published: boolean | null
           name: string
+          published_at: string | null
           space_id: string
           year: number
         }
@@ -127,7 +129,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_published?: boolean | null
           name: string
+          published_at?: string | null
           space_id: string
           year: number
         }
@@ -135,7 +139,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_published?: boolean | null
           name?: string
+          published_at?: string | null
           space_id?: string
           year?: number
         }
@@ -844,29 +850,35 @@ export type Database = {
       }
       syllabi: {
         Row: {
+          classroom_expectations: string | null
           created_at: string
           curriculum_id: string
           grading_policy: Json
           id: string
           instructor_notes: string | null
+          office_hours: string | null
           required_materials: string | null
           teacher_id: string | null
         }
         Insert: {
+          classroom_expectations?: string | null
           created_at?: string
           curriculum_id: string
           grading_policy: Json
           id?: string
           instructor_notes?: string | null
+          office_hours?: string | null
           required_materials?: string | null
           teacher_id?: string | null
         }
         Update: {
+          classroom_expectations?: string | null
           created_at?: string
           curriculum_id?: string
           grading_policy?: Json
           id?: string
           instructor_notes?: string | null
+          office_hours?: string | null
           required_materials?: string | null
           teacher_id?: string | null
         }
@@ -1056,7 +1068,21 @@ export type Database = {
           used_count: number
         }[]
       }
+      is_ecosystem_admin_for_space: {
+        Args: { p_space_id: string }
+        Returns: boolean
+      }
+      is_effective_space_admin: {
+        Args: { p_space_id: string }
+        Returns: boolean
+      }
+      is_effective_space_staff: {
+        Args: { p_space_id: string }
+        Returns: boolean
+      }
+      is_effective_staff_anywhere: { Args: never; Returns: boolean }
       lesson_curriculum: { Args: { p_lesson_id: string }; Returns: string }
+      lesson_space: { Args: { p_lesson_id: string }; Returns: string }
       term_curriculum: { Args: { p_term_id: string }; Returns: string }
       topic_curriculum: { Args: { p_topic_id: string }; Returns: string }
       unit_curriculum: { Args: { p_unit_id: string }; Returns: string }
