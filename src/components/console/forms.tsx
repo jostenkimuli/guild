@@ -75,6 +75,18 @@ function useRefreshOnSuccess(
   }, [state, router, onSuccess]);
 }
 
+function useNavigateOnSuccess(
+  state: ConsoleActionState,
+  path: string,
+) {
+  const router = useRouter();
+  useEffect(() => {
+    if (state.success && path) {
+      router.push(path);
+    }
+  }, [state, router, path]);
+}
+
 function CreateAdminAccountForm({
   idPrefix,
   action,
@@ -213,7 +225,7 @@ export function CreateEcosystemForm({ ecosystemType }: { ecosystemType?: string 
   const [state, action, pending] = useActionState(createEcosystem, {
     success: false,
   });
-  useRefreshOnSuccess(state);
+  useNavigateOnSuccess(state, state.ecosystemId ? `/ecosystem/${state.ecosystemId}` : "");
 
   return (
     <form action={action} className="space-y-4">

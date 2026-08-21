@@ -12,6 +12,7 @@ export type ConsoleActionState = {
   success: boolean;
   error?: string;
   code?: string;
+  ecosystemId?: string;
 };
 
 export type EditSpaceState = ConsoleActionState & {
@@ -325,18 +326,22 @@ export async function createEcosystem(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("ecosystems").insert({
-    name,
-    type,
-    vision: String(formData.get("vision") ?? "").trim() || null,
-    mission: String(formData.get("mission") ?? "").trim() || null,
-    description: String(formData.get("description") ?? "").trim() || null,
-    raw_ecosystem_meta_data: meta,
-    created_by: profile.id,
-  });
+  const { data, error } = await supabase
+    .from("ecosystems")
+    .insert({
+      name,
+      type,
+      vision: String(formData.get("vision") ?? "").trim() || null,
+      mission: String(formData.get("mission") ?? "").trim() || null,
+      description: String(formData.get("description") ?? "").trim() || null,
+      raw_ecosystem_meta_data: meta,
+      created_by: profile.id,
+    })
+    .select("id")
+    .single();
 
   if (error) return { success: false, error: error.message };
-  return { success: true };
+  return { success: true, ecosystemId: data.id };
 }
 
 // ------------------------------------------------------------
