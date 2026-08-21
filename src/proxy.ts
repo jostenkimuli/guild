@@ -35,7 +35,9 @@ export async function proxy(request: NextRequest) {
   if (
     !user &&
     (url.pathname.startsWith("/dashboard") ||
-      url.pathname.startsWith("/console") ||
+      url.pathname.startsWith("/admin") ||
+      url.pathname.startsWith("/ecosystem") ||
+      url.pathname.startsWith("/spaces") ||
       url.pathname === "/setup-password")
   ) {
     return NextResponse.redirect(new URL("/login", request.url));

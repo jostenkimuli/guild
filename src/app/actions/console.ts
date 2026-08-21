@@ -208,9 +208,9 @@ export async function approveProgramAdmin(formData: FormData) {
   const userId = String(formData.get("user_id") ?? "");
 
   if (!profile || profile.role !== "super_admin" || profile.status !== "approved") {
-    redirect("/console/super?error=unauthorized");
+    redirect("/admin?error=unauthorized");
   }
-  if (!userId) redirect("/console/super?error=missing-id");
+  if (!userId) redirect("/admin?error=missing-id");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -219,8 +219,8 @@ export async function approveProgramAdmin(formData: FormData) {
     .eq("id", userId)
     .eq("role", "program_admin");
 
-  if (error) redirect(`/console/super?error=${encodeURIComponent(error.message)}`);
-  redirect("/console/super?approved=1");
+  if (error) redirect(`/admin?error=${encodeURIComponent(error.message)}`);
+  redirect("/admin?approved=1");
 }
 
 // ------------------------------------------------------------
@@ -235,9 +235,9 @@ export async function setProgramAdminDelegation(formData: FormData) {
   const delegated = formData.get("delegated") === "true";
 
   if (!profile || profile.role !== "super_admin" || profile.status !== "approved") {
-    redirect("/console/super?error=unauthorized");
+    redirect("/admin?error=unauthorized");
   }
-  if (!userId) redirect("/console/super?error=missing-id");
+  if (!userId) redirect("/admin?error=missing-id");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -246,8 +246,8 @@ export async function setProgramAdminDelegation(formData: FormData) {
     .eq("id", userId)
     .eq("role", "program_admin");
 
-  if (error) redirect(`/console/super?error=${encodeURIComponent(error.message)}`);
-  redirect(`/console/super?delegated=${delegated ? 1 : 0}`);
+  if (error) redirect(`/admin?error=${encodeURIComponent(error.message)}`);
+  redirect(`/admin?delegated=${delegated ? 1 : 0}`);
 }
 
 // ------------------------------------------------------------
@@ -266,9 +266,9 @@ export async function approveEcosystemAdmin(formData: FormData) {
     profile?.role === "super_admin" && profile.status === "approved";
 
   if (!delegated && !isSuper) {
-    redirect("/console/program?error=unauthorized");
+    redirect("/admin?error=unauthorized");
   }
-  if (!userId) redirect("/console/program?error=missing-id");
+  if (!userId) redirect("/admin?error=missing-id");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -278,11 +278,9 @@ export async function approveEcosystemAdmin(formData: FormData) {
     .eq("role", "ecosystem_admin");
 
   if (error) {
-    const target = isSuper ? "/console/super" : "/console/program";
-    redirect(`${target}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/admin?error=${encodeURIComponent(error.message)}`);
   }
-  if (isSuper) redirect("/console/super/ecosystem-admins?approved=1");
-  redirect("/console/program?approved=1");
+  redirect("/admin?approved=1");
 }
 
 // ------------------------------------------------------------

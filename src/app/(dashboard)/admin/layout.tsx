@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 
-export default async function SuperConsoleLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: ReactNode;
@@ -19,7 +19,11 @@ export default async function SuperConsoleLayout({
     .select("role, status")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "super_admin" || profile.status !== "approved") {
+  if (
+    !profile ||
+    (profile.role !== "super_admin" && profile.role !== "program_admin") ||
+    profile.status !== "approved"
+  ) {
     redirect("/dashboard");
   }
 

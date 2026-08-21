@@ -54,11 +54,35 @@ export default function LoginPage() {
       if (uid) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("must_change_password")
+          .select("role, status, must_change_password")
           .eq("id", uid)
           .single();
         if (profile?.must_change_password) {
           router.push("/setup-password");
+          router.refresh();
+          return;
+        }
+        const role = profile?.role;
+        const status = profile?.status;
+        if (
+          (role === "super_admin" || role === "program_admin") &&
+          status === "approved"
+        ) {
+          router.push("/admin");
+        } else if (role === "ecosystem_admin" && status === "approved") {
+          router.push("/ecosystem");
+        } else if (role === "space_admin" && status === "approved") {
+          const { data: membership } = await supabase
+            .from("space_memberships")
+            .select("spaces!inner(slug)")
+            .eq("user_id", uid)
+            .limit(1)
+            .maybeSingle();
+          if (membership?.spaces?.slug) {
+            router.push(`/spaces/${membership.spaces.slug}`);
+          } else {
+            router.push("/dashboard");
+          }
         } else {
           router.push("/dashboard");
         }

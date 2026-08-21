@@ -64,28 +64,36 @@ export default async function DashboardRootLayout({
   }
 
   const role = profile?.role;
-  const consoleItems: { href: string; label: string }[] = [];
-  if (role === "super_admin" && profile?.status === "approved") {
-    consoleItems.push(
-      { href: "/console/super", label: "Program admins" },
-      { href: "/console/super/ecosystem-admins", label: "Ecosystem admins" },
-    );
-  } else if (role === "program_admin" && profile?.status === "approved") {
-    consoleItems.push({ href: "/console/program", label: "Ecosystem admins" });
+  const adminItems: { href: string; label: string }[] = [];
+  if (
+    (role === "super_admin" || role === "program_admin") &&
+    profile?.status === "approved"
+  ) {
+    adminItems.push({ href: "/admin", label: "Admin" });
   }
-  if (consoleItems.length > 0) {
-    groups.push({ label: "Console", items: consoleItems });
+  if (adminItems.length > 0) {
+    groups.push({ label: "Administration", items: adminItems });
   }
 
-  const administrationItems: { href: string; label: string }[] = [];
+  const ecosystemItems: { href: string; label: string }[] = [];
   if (role === "ecosystem_admin" && profile?.status === "approved") {
-    administrationItems.push({
-      href: "/ecosystem/staff",
-      label: "Space admins",
-    });
+    const { data: ecosystem } = await supabase
+      .from("ecosystems")
+      .select("id")
+      .eq("created_by", user.id)
+      .maybeSingle();
+    if (ecosystem) {
+      ecosystemItems.push(
+        { href: `/ecosystem/${ecosystem.id}`, label: "Ecosystem" },
+        { href: `/ecosystem/${ecosystem.id}/spaces`, label: "Spaces" },
+        { href: `/ecosystem/${ecosystem.id}/staff`, label: "Staff" },
+      );
+    } else {
+      ecosystemItems.push({ href: "/ecosystem", label: "Create ecosystem" });
+    }
   }
-  if (administrationItems.length > 0) {
-    groups.push({ label: "Administration", items: administrationItems });
+  if (ecosystemItems.length > 0) {
+    groups.push({ label: "Ecosystem", items: ecosystemItems });
   }
 
   const mobileItems = groups.flatMap((group) => group.items);

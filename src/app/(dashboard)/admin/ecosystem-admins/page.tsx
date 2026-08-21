@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { approveEcosystemAdmin } from "@/app/actions/console";
 import { ConsolePanel } from "@/components/console/panels";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { ecosystemTypeLabel } from "@/lib/ecosystems";
 
-export default async function SuperEcosystemAdminsPage({
+export default async function AdminEcosystemAdminsPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; approved?: string }>;
@@ -16,7 +18,20 @@ export default async function SuperEcosystemAdminsPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, status")
+    .eq("id", user.id)
+    .single();
+  if (
+    !profile ||
+    (profile.role !== "super_admin" && profile.role !== "program_admin") ||
+    profile.status !== "approved"
+  ) {
+    redirect("/dashboard");
+  }
 
   const { data: ecosystemAdmins } = await supabase
     .from("profiles")

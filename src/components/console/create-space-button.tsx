@@ -8,10 +8,10 @@ import { spaceTypeLabel, type SpaceType } from "@/lib/ecosystems";
 
 export function CreateSpaceButton({
   ecosystemId,
-  defaultType,
+  defaultType = "department",
 }: {
   ecosystemId: string;
-  defaultType: SpaceType;
+  defaultType?: SpaceType;
 }) {
   const [open, setOpen] = useState(false);
   const label = spaceTypeLabel(defaultType).toLowerCase();

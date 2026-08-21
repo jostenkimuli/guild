@@ -1,11 +1,17 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { CreateSpaceAdminDialog } from "@/components/console/create-space-admin-dialog";
 import { ConsolePanel, EmptyState } from "@/components/console/panels";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function EcosystemStaffPage() {
+export default async function EcosystemStaffPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,9 +29,9 @@ export default async function EcosystemStaffPage() {
   const { data: ecosystem } = await supabase
     .from("ecosystems")
     .select("id")
-    .eq("created_by", user.id)
-    .single();
-  if (!ecosystem) redirect("/console/ecosystem");
+    .eq("id", id)
+    .maybeSingle();
+  if (!ecosystem) notFound();
 
   const { data: staffRows } = await supabase
     .from("ecosystem_staff")
@@ -39,6 +45,7 @@ export default async function EcosystemStaffPage() {
 
   return (
     <section className="space-y-4">
+      <h2 className="text-lg font-semibold tracking-tight">Staff</h2>
       <ConsolePanel
         title="Space admins"
         description="Everyone who runs spaces in this ecosystem."
