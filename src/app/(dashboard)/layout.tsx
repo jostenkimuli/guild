@@ -94,31 +94,47 @@ export default async function DashboardRootLayout({
     }
   }
 
-  if (
-    role === "space_admin"
-  ) {
+  if (role === "space_admin" && profile?.status === "approved") {
     const { data: memberships } = await supabase
       .from("space_memberships")
-      .select("spaces(id, name, slug, type)")
+      .select("spaces(id, name, slug, type, ecosystem_id)")
       .eq("user_id", user.id);
 
     const spaces = (memberships ?? [])
       .map((m) => m.spaces)
       .filter((s): s is NonNullable<typeof s> => s !== null);
 
-    const spaceItems = spaces.map((space) => ({
-      href: `/spaces/${space.slug ?? space.id}`,
-      label: space.name,
-    }));
+    if (spaces.length > 0) {
+      const ecosystemId = spaces[0].ecosystem_id;
+      const { data: ecosystem } = await supabase
+        .from("ecosystems")
+        .select("name, type, vision")
+        .eq("id", ecosystemId)
+        .maybeSingle();
 
-    if (spaceItems.length > 0) {
-      groups.push({ label: "Overview", items: spaceItems });
+      if (ecosystem) {
+        header = {
+          title: ecosystem.name,
+          subtitle: ecosystem.vision ?? undefined,
+          badge: ecosystemTypeLabel(ecosystem.type),
+        };
+      }
 
-      const memberLinks = spaces.map((space) => ({
-        href: `/spaces/${space.slug ?? space.id}/members`,
-        label: space.name,
-      }));
-      groups.push({ label: "Administration", items: memberLinks });
+      groups.push({
+        label: "Overview",
+        items: spaces.map((space) => ({
+          href: `/spaces/${space.slug ?? space.id}`,
+          label: "Dashboard",
+        })),
+      });
+
+      groups.push({
+        label: "Administration",
+        items: spaces.map((space) => ({
+          href: `/spaces/${space.slug ?? space.id}/members`,
+          label: "Members",
+        })),
+      });
     }
   }
 
