@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { signOut } from "@/app/actions/auth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -12,15 +13,49 @@ export type DashboardNavGroup = {
   items: { href: string; label: string }[];
 };
 
-export function DashboardSidebar({ groups }: { groups: DashboardNavGroup[] }) {
+export type SidebarHeader = {
+  title: string;
+  subtitle?: string;
+  badge?: string;
+};
+
+export function DashboardSidebar({
+  header,
+  groups,
+}: {
+  header?: SidebarHeader;
+  groups: DashboardNavGroup[];
+}) {
   const pathname = usePathname();
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r bg-muted/40 sm:flex">
-      <Link href="/" className="border-b px-4 py-4">
-        <p className="text-sm font-semibold tracking-tight">TheGuild</p>
-        <p className="text-xs text-muted-foreground">Your workspace</p>
-      </Link>
+      {header ? (
+        <div className="border-b px-4 py-4">
+          <div className="flex items-center gap-2">
+            {header.badge ? (
+              <Badge variant="secondary" className="shrink-0 text-xs">
+                {header.badge}
+              </Badge>
+            ) : null}
+            <Link href="/" className="min-w-0">
+              <p className="truncate text-sm font-semibold tracking-tight">
+                {header.title}
+              </p>
+            </Link>
+          </div>
+          {header.subtitle ? (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {header.subtitle}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <Link href="/" className="border-b px-4 py-4">
+          <p className="text-sm font-semibold tracking-tight">TheGuild</p>
+          <p className="text-xs text-muted-foreground">Your workspace</p>
+        </Link>
+      )}
       <nav className="flex-1 space-y-6 overflow-y-auto p-3">
         {groups.map((group) => (
           <div key={group.label}>
@@ -61,7 +96,7 @@ export function DashboardSidebar({ groups }: { groups: DashboardNavGroup[] }) {
             Sign out
           </Button>
         </form>
-      </div>
+     </div>
     </aside>
   );
 }
