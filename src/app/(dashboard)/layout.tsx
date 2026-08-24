@@ -10,11 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
-import {
-  ecosystemTypeLabel,
-  SPACE_TYPE_ORDER,
-  type SpaceType,
-} from "@/lib/ecosystems";
+import { ecosystemTypeLabel } from "@/lib/ecosystems";
 
 export default async function DashboardRootLayout({
   children,
@@ -141,31 +137,16 @@ export default async function DashboardRootLayout({
   if (role === "member") {
     const { data: memberships } = await supabase
       .from("space_memberships")
-      .select("spaces(id, name, slug, type)");
+      .select("spaces(id, slug)")
+      .limit(1)
+      .maybeSingle();
 
-    const spacesByType = new Map<SpaceType, { href: string; label: string }[]>();
-    for (const membership of memberships ?? []) {
-      const space = membership.spaces;
-      if (!space) continue;
-      const type = space.type as SpaceType;
-      const item = { href: `/spaces/${space.slug ?? space.id}`, label: space.name };
-      const items = spacesByType.get(type) ?? [];
-      if (!items.some((existing) => existing.href === item.href)) {
-        items.push(item);
-        spacesByType.set(type, items);
-      }
-    }
-
-    const spaceItems: { href: string; label: string }[] = [];
-    for (const type of SPACE_TYPE_ORDER) {
-      const items = spacesByType.get(type);
-      if (items && items.length > 0) {
-        spaceItems.push(...items);
-      }
-    }
-
-    if (spaceItems.length > 0) {
-      groups.push({ label: "Spaces", items: spaceItems });
+    const space = memberships?.spaces;
+    if (space) {
+      groups.push({
+        label: "Overview",
+        items: [{ href: `/spaces/${space.slug ?? space.id}`, label: "Dashboard" }],
+      });
     }
   }
 
