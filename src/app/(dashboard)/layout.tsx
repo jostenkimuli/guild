@@ -47,7 +47,7 @@ export default async function DashboardRootLayout({
   if (role === "ecosystem_admin" && profile?.status === "approved") {
     const { data: ecosystem } = await supabase
       .from("ecosystems")
-      .select("id, name, type, vision")
+      .select("id, name, type, vision, calendar_year")
       .eq("created_by", user.id)
       .maybeSingle();
     if (ecosystem) {
@@ -55,6 +55,7 @@ export default async function DashboardRootLayout({
         title: ecosystem.name,
         subtitle: ecosystem.vision ?? undefined,
         badge: ecosystemTypeLabel(ecosystem.type),
+        calendarYear: ecosystem.calendar_year,
       };
       groups.push({
         label: "Overview",
@@ -104,7 +105,7 @@ export default async function DashboardRootLayout({
       const ecosystemId = spaces[0].ecosystem_id;
       const { data: ecosystem } = await supabase
         .from("ecosystems")
-        .select("name, type, vision")
+        .select("name, type, vision, calendar_year")
         .eq("id", ecosystemId)
         .maybeSingle();
 
@@ -113,6 +114,7 @@ export default async function DashboardRootLayout({
           title: ecosystem.name,
           subtitle: ecosystem.vision ?? undefined,
           badge: ecosystemTypeLabel(ecosystem.type),
+          calendarYear: ecosystem.calendar_year,
         };
       }
 

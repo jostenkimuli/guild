@@ -525,9 +525,8 @@ where c.name = 'Primary Mathematics' and tp.name = 'Angles and Shapes'
   and not exists (select 1 from public.content where topic_id = tp.id and title = 'Angles around a point');
 
 -- lessons (self-paced, published)
-insert into public.lessons (topic_id, title, content, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
+insert into public.lessons (topic_id, title, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
 select tp.id, 'Fractions to decimals and percentages',
-  'Convert between fractions, decimals and percentages, and solve percentage problems.',
   45, 'self_paced', true, now(),
   (select id from public.profiles where display_name = 'Demo User' limit 1)
 from public.topics as tp
@@ -538,9 +537,8 @@ join public.curricula as c on c.id = g.curriculum_id
 where c.name = 'Primary Mathematics' and tp.name = 'Fractions, Decimals and Percentages'
   and not exists (select 1 from public.lessons where topic_id = tp.id and title = 'Fractions to decimals and percentages');
 
-insert into public.lessons (topic_id, title, content, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
+insert into public.lessons (topic_id, title, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
 select tp.id, 'Simplifying expressions',
-  'Simplify linear expressions by collecting like terms and evaluate them by substitution.',
   45, 'self_paced', true, now(),
   (select id from public.profiles where display_name = 'Demo User' limit 1)
 from public.topics as tp
@@ -551,9 +549,8 @@ join public.curricula as c on c.id = g.curriculum_id
 where c.name = 'Primary Mathematics' and tp.name = 'Algebraic Expressions'
   and not exists (select 1 from public.lessons where topic_id = tp.id and title = 'Simplifying expressions');
 
-insert into public.lessons (topic_id, title, content, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
+insert into public.lessons (topic_id, title, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
 select tp.id, 'Angles in triangles',
-  'Measure angles with a protractor and calculate missing angles in triangles.',
   40, 'self_paced', true, now(),
   (select id from public.profiles where display_name = 'Demo User' limit 1)
 from public.topics as tp
@@ -564,9 +561,8 @@ join public.curricula as c on c.id = g.curriculum_id
 where c.name = 'Primary Mathematics' and tp.name = 'Angles and Shapes'
   and not exists (select 1 from public.lessons where topic_id = tp.id and title = 'Angles in triangles');
 
-insert into public.lessons (topic_id, title, content, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
+insert into public.lessons (topic_id, title, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
 select tp.id, 'Drawing bar charts',
-  'Collect data as a class and present it in a bar chart.',
   45, 'self_paced', true, now(),
   (select id from public.profiles where display_name = 'Demo User' limit 1)
 from public.topics as tp
@@ -576,6 +572,39 @@ join public.grades as g on g.id = t.grade_id
 join public.curricula as c on c.id = g.curriculum_id
 where c.name = 'Primary Mathematics' and tp.name = 'Data Handling'
   and not exists (select 1 from public.lessons where topic_id = tp.id and title = 'Drawing bar charts');
+
+-- lesson_pages: one introductory page per lesson
+insert into public.lesson_pages (lesson_id, title, body, sequence)
+select l.id, 'Overview',
+  'Convert between fractions, decimals and percentages, and solve percentage problems.',
+  1
+from public.lessons as l
+where l.title = 'Fractions to decimals and percentages'
+  and not exists (select 1 from public.lesson_pages where lesson_id = l.id);
+
+insert into public.lesson_pages (lesson_id, title, body, sequence)
+select l.id, 'Overview',
+  'Simplify linear expressions by collecting like terms and evaluate them by substitution.',
+  1
+from public.lessons as l
+where l.title = 'Simplifying expressions'
+  and not exists (select 1 from public.lesson_pages where lesson_id = l.id);
+
+insert into public.lesson_pages (lesson_id, title, body, sequence)
+select l.id, 'Overview',
+  'Measure angles with a protractor and calculate missing angles in triangles.',
+  1
+from public.lessons as l
+where l.title = 'Angles in triangles'
+  and not exists (select 1 from public.lesson_pages where lesson_id = l.id);
+
+insert into public.lesson_pages (lesson_id, title, body, sequence)
+select l.id, 'Overview',
+  'Collect data as a class and present it in a bar chart.',
+  1
+from public.lessons as l
+where l.title = 'Drawing bar charts'
+  and not exists (select 1 from public.lesson_pages where lesson_id = l.id);
 
 -- activities
 insert into public.activities (lesson_id, title, description, sequence)

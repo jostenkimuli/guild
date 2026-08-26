@@ -17,6 +17,7 @@ export type SidebarHeader = {
   title: string;
   subtitle?: string;
   badge?: string;
+  calendarYear?: number | null;
 };
 
 export function DashboardSidebar({
@@ -47,6 +48,11 @@ export function DashboardSidebar({
           {header.subtitle ? (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
               {header.subtitle}
+            </p>
+          ) : null}
+          {header.calendarYear ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Calendar Year {header.calendarYear}
             </p>
           ) : null}
         </div>
