@@ -18,6 +18,11 @@
 --   testteacher teacher          (teacher in Primary Mathematics Space)
 -- ------------------------------------------------------------
 
+-- pgcrypto's gen_salt()/crypt() live in the `extensions` schema on hosted
+-- Supabase (and in `public` locally), so resolve both via the search path.
+create extension if not exists pgcrypto;
+set search_path = public, extensions;
+
 insert into auth.users (
   instance_id,
   id,
