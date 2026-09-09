@@ -13,9 +13,9 @@ import {
 export default async function EcosystemSpacesPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
 
   const supabase = await createClient();
   const {
@@ -26,7 +26,7 @@ export default async function EcosystemSpacesPage({
   const { data: ecosystem } = await supabase
     .from("ecosystems")
     .select("id, type")
-    .eq("id", id)
+    .eq("slug", slug)
     .maybeSingle();
   if (!ecosystem) notFound();
 

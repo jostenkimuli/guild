@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { APP_HOST } from "@/lib/subdomain";
+import { navigateToEcosystemSubdomain } from "@/lib/subdomain-session";
 
 type Mode = "signin" | "signup";
 
@@ -26,6 +28,54 @@ export default function LoginPage() {
   const [invitationCode, setInvitationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let cancelled = false;
+
+    async function restoreOrRedirect() {
+      const isEcosystemSubdomain =
+        window.location.hostname !== APP_HOST &&
+        window.location.hostname.endsWith(`.${APP_HOST}`);
+
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (!error) {
+          history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.search,
+          );
+          if (!cancelled) {
+            router.replace("/");
+            router.refresh();
+          }
+          return;
+        }
+      }
+
+      if (!cancelled && isEcosystemSubdomain) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session) {
+          router.replace("/");
+          router.refresh();
+        }
+      }
+    }
+
+    void restoreOrRedirect();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,6 +120,35 @@ export default function LoginPage() {
         ) {
           router.push("/admin");
         } else if (role === "ecosystem_admin" && status === "approved") {
+          const { data: staffEcosystem } = await supabase
+            .from("ecosystem_staff")
+            .select("ecosystem_id, ecosystems!inner(slug)")
+            .eq("user_id", uid)
+            .eq("role", "ecosystem_admin")
+            .limit(1)
+            .maybeSingle();
+          let slug = staffEcosystem?.ecosystems?.slug;
+          if (!slug) {
+            const { data: createdEcosystem } = await supabase
+              .from("ecosystems")
+              .select("slug")
+              .eq("created_by", uid)
+              .limit(1)
+              .maybeSingle();
+            slug = createdEcosystem?.slug;
+          }
+          if (slug && window.location.hostname.toLowerCase() === APP_HOST) {
+            const subdomainUrl = `${window.location.protocol}//${slug}.${window.location.host}`;
+            await navigateToEcosystemSubdomain(subdomainUrl);
+            return;
+          }
+          if (slug && window.location.hostname.toLowerCase() !== APP_HOST) {
+            // Already on the ecosystem subdomain — its root rewrites to the
+            // school dashboard.
+            router.push("/");
+            router.refresh();
+            return;
+          }
           router.push("/ecosystem");
         } else if (role === "space_admin" && status === "approved") {
           const { data: membership } = await supabase

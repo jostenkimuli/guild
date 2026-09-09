@@ -7,10 +7,10 @@ export default async function EcosystemDetailLayout({
   params,
   children,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
   children: ReactNode;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
 
   const supabase = await createClient();
   const {
@@ -28,8 +28,8 @@ export default async function EcosystemDetailLayout({
 
   const { data: ecosystem } = await supabase
     .from("ecosystems")
-    .select("id, name, type, vision, mission, description, created_by")
-    .eq("id", id)
+    .select("id, slug, name, type, vision, mission, description, created_by")
+    .eq("slug", slug)
     .maybeSingle();
 
   if (!ecosystem) notFound();

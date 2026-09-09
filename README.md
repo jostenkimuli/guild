@@ -52,7 +52,13 @@ Demo accounts (seeded):
 | Program admin | `demo@theguild.dev` | `demo-password` | Creates ecosystem admins; approves them once the super admin delegates that authority |
 | Ecosystem admin | `ecoadmin@theguild.dev` | `ecoadmin-password` | Owns "A Sample School Ecosystem"; creates space admins |
 | Space admin | `spaceadmin@theguild.dev` | `spaceadmin-password` | Owns "Primary Mathematics Space"; generates invitation codes |
+| Teacher | `testteacher@example.com` | `testpass123` | Teacher in "Primary Mathematics Space" |
 | Learner | `learner@theguild.dev` | `learner-password` | Learner in "Primary Mathematics Space" |
+
+`testteacher@example.com` signs in directly (the account and its `teacher`
+space membership are seeded, no invitation code needed). It holds the same
+in-space teacher rights as `ecoadmin@theguild.dev`, which also carries a
+`teacher` membership in "Primary Mathematics Space".
 
 To try the full onboarding flow, sign in as `superadmin@theguild.dev`,
 create a program admin (starts pending), approve it, then sign in as that

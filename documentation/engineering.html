@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Engineering Process &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="engineering">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>Engineering Process</h1>
+      <p class="lead">
+        TheGuild is built in one-week sprints. Process artifacts live in
+        <code>docs/agile/</code> and are authoritative: working agreements, Definition of
+        Done, product backlog, and the sprint plan.
+      </p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#rituals">Team rituals</a>
+        <a href="#working-agreements">Working agreements</a>
+        <a href="#definition-of-done">Definition of Done</a>
+        <a href="#backlog">Product backlog</a>
+        <a href="#sprint-map">Phase &amp; sprint map</a>
+        <a href="#retro-log">Retro log</a>
+      </div>
+
+      <h2 id="rituals">Team rituals</h2>
+      <ul>
+        <li><strong>One-week sprints</strong> with a planning session and a retro.</li>
+        <li>The Definition of Done applies to <strong>every</strong> item &mdash; nothing ships without it.</li>
+        <li>One PR per backlog item; keep diffs small.</li>
+        <li>Every feature traces back to a user story in the backlog.</li>
+      </ul>
+
+      <h2 id="working-agreements">Working agreements (<code>WORKING_AGREEMENTS.md</code>)</h2>
+      <div class="card">
+        <ul>
+          <li>Server components by default; client components only for interactivity.</li>
+          <li>RLS is the security boundary; every new table gets RLS + explicit GRANTs.</li>
+          <li>Regenerate and commit DB types after every schema change.</li>
+          <li>Prefer shadcn/ui components; no hand-rolled duplicates.</li>
+          <li>No secrets in code or repo.</li>
+        </ul>
+      </div>
+
+      <h2 id="definition-of-done">Definition of Done (<code>DEFINITION_OF_DONE.md</code>)</h2>
+      <p>An item is done only when it passes <strong>all</strong> of:</p>
+      <table>
+        <thead><tr><th>#</th><th>Criterion</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Feature works locally end-to-end.</td></tr>
+          <tr><td>2</td><td><code>npm run lint</code> &mdash; no errors.</td></tr>
+          <tr><td>3</td><td><code>npm run typecheck</code> &mdash; passes.</td></tr>
+          <tr><td>4</td><td><code>npm run build</code> &mdash; clean production build.</td></tr>
+          <tr><td>5</td><td>Schema changes ship as migrations; <code>db:reset</code> applies from scratch.</td></tr>
+          <tr><td>6</td><td>RLS enabled + explicit GRANTs + row-level policies, verified with positive and negative tests.</td></tr>
+          <tr><td>7</td><td><code>db:types</code> regenerated and committed.</td></tr>
+          <tr><td>8</td><td>No secrets leaked.</td></tr>
+          <tr><td>9</td><td>Meets the user story&rsquo;s acceptance criteria.</td></tr>
+          <tr><td>10</td><td>Keyboard navigable, readable at default text size, no axe contrast failures.</td></tr>
+          <tr><td>11</td><td>Sensible empty / loading / error states.</td></tr>
+          <tr><td>12</td><td>Uses shadcn/ui components.</td></tr>
+          <tr><td>13</td><td>Backlog item marked done; docs updated; no dead code.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="backlog">Product backlog (<code>PRODUCT_BACKLOG.md</code>)</h2>
+      <table>
+        <thead><tr><th>Epic</th><th>Focus</th><th>Priority</th><th>Stories</th></tr></thead>
+        <tbody>
+          <tr><td>1 &mdash; Ecosystems &amp; Spaces</td><td>The container hierarchy and onboarding</td><td>P0</td><td>E-1 &hellip; S-5</td></tr>
+          <tr><td>2 &mdash; Content &amp; Learning</td><td>Curriculum, lessons, syllabi, delivery</td><td>P0</td><td>L-1 &hellip; L-4</td></tr>
+          <tr><td>3 &mdash; Roles</td><td>Per-space roles, mentorship</td><td>P0/P1/P2</td><td>R-1 &hellip; R-4</td></tr>
+          <tr><td>4 &mdash; Teams</td><td>Form/join teams, team pages</td><td>P1/P2</td><td>T-1 &hellip; T-4</td></tr>
+          <tr><td>5 &mdash; Challenges</td><td>Post, visibility, board, lifecycle</td><td>P0</td><td>CH-1 &hellip; CH-4</td></tr>
+          <tr><td>6 &mdash; Projects</td><td>Create, detail, lifecycle, submission</td><td>P0/P1</td><td>PR-1 &hellip; PR-4</td></tr>
+          <tr><td>7 &mdash; Macro Scale</td><td>Alliances, cross-ecosystem reporting</td><td>P2</td><td>M-1 &hellip; M-4</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="sprint-map">Phase &amp; sprint map (<code>SPRINT_PLAN.md</code>)</h2>
+      <table>
+        <thead><tr><th>Phase</th><th>Sprints</th><th>Unlocks</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>1 &mdash; School &rarr; Classroom &rarr; Lessons &rarr; Teacher/Learner</td><td>1&ndash;2</td><td>Core stability + traction</td><td><span class="badge green">done</span></td></tr>
+          <tr><td>2 &mdash; Mentor role</td><td>3</td><td>Mentorship / apprenticeship</td><td><span class="badge gray">planned</span></td></tr>
+          <tr><td>3 &mdash; Teams within a Space</td><td>4</td><td>Collaboration</td><td><span class="badge gray">planned</span></td></tr>
+          <tr><td>4 &mdash; Challenge + Project entities</td><td>5&ndash;6</td><td>Problem-solving</td><td><span class="badge gray">planned</span></td></tr>
+          <tr><td>5 &mdash; Alliances / Countries</td><td>7&ndash;8</td><td>Macro-level scaling</td><td><span class="badge gray">planned</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Sprint status</h3>
+      <table>
+        <thead><tr><th>Sprint</th><th>Status</th><th>Outcome</th></tr></thead>
+        <tbody>
+          <tr><td>Sprint 0</td><td><span class="badge green">done</span></td><td>Stack scaffold, auth, schema, green build, agile process.</td></tr>
+          <tr><td>Sprint 1</td><td><span class="badge green">done</span></td><td>Ecosystems, spaces, memberships, full admin onboarding chain, invitation codes, dashboards, creation UI.</td></tr>
+          <tr><td>Sprint 2</td><td><span class="badge green">done</span></td><td>Curriculum tree, lessons, activities, assessments, resources, syllabi, blueprint wizard, delivery cycle.</td></tr>
+          <tr><td>Sprint 3</td><td><span class="badge gray">planned</span></td><td>Mentors: assignment, guidance, role history.</td></tr>
+          <tr><td>Sprint 4</td><td><span class="badge gray">planned</span></td><td>Teams: form/join, team pages.</td></tr>
+          <tr><td>Sprint 5</td><td><span class="badge gray">planned</span></td><td>Challenges: post, visibility, board, lifecycle.</td></tr>
+          <tr><td>Sprint 6</td><td><span class="badge gray">planned</span></td><td>Projects: create, detail, lifecycle, submission.</td></tr>
+          <tr><td>Sprint 7</td><td><span class="badge gray">planned</span></td><td>Alliances: ecosystem hierarchy, directory.</td></tr>
+          <tr><td>Sprint 8</td><td><span class="badge gray">planned</span></td><td>Impact at scale: cross-ecosystem visibility, reporting.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="retro-log">Retro log</h2>
+      <table>
+        <thead><tr><th>Sprint</th><th>Experiment kept</th></tr></thead>
+        <tbody>
+          <tr><td>Sprint 0</td><td>Verify every schema change via <code>db:reset</code>; run <code>db:types</code> after every migration.</td></tr>
+          <tr><td>Sprint 1</td><td>Built the admin onboarding layer; verified the whole chain E2E (API + four seeded roles + first-login password flow).</td></tr>
+          <tr><td>Sprint 2</td><td>Shipped the lesson delivery cycle end-to-end; expanded from a single <code>content</code> table to full lesson design with learner self-tracking on objective results.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="pager">
+        <a href="security.html"><span class="pkt">Previous</span>&larr; Auth, Roles &amp; RLS</a>
+        <span></span>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../docs/agile/DEFINITION_OF_DONE.md">Definition of Done</a>
+        <a href="../docs/agile/SPRINT_PLAN.md">Sprint plan</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

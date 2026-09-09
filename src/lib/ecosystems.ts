@@ -61,6 +61,22 @@ export function ecosystemTypeLabel(type: string | null | undefined): string {
 }
 
 /**
+ * K-12 school ecosystems (nursery, primary, secondary). These get
+ * the dash.html school-creation wizard, the school admin dashboard
+ * and the theme/badge customization experience. Universities and
+ * macro/organization ecosystems keep the generic flow.
+ */
+export const SCHOOL_TYPES: ReadonlySet<ConcreteEcosystemType> = new Set([
+  "nursery_school",
+  "primary_school",
+  "secondary_school",
+]);
+
+export function isSchoolType(type: string | null | undefined): boolean {
+  return !!type && SCHOOL_TYPES.has(type as ConcreteEcosystemType);
+}
+
+/**
  * The display identity of an ecosystem: name followed by the type
  * (e.g. "Maggie Primary School"), unless the name already contains
  * any of the words from the type (e.g. "A Sample School Ecosystem"

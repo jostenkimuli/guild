@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TheGuild — A Concept Presentation</title>
+  <meta name="description" content="TheGuild concept deck: turning Africa's resources into resourcefulness through quality education for everyone." />
+  <style>
+    :root {
+      --ink: #0c0f16;
+      --panel: #141926;
+      --panel-2: #1a2133;
+      --card: #1e2639;
+      --line: rgba(255,255,255,.10);
+      --text: #f2f4fa;
+      --muted: #a7afc2;
+      --faint: #6c7590;
+      --blue: #2f6bff;
+      --violet: #7a5cff;
+      --gold: #f5b93c;
+      --green: #2fd195;
+      --red: #ff6b6b;
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: var(--ink);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- stage ---------- */
+    #stage {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(1000px 600px at 85% -10%, rgba(47,107,255,.16), transparent 60%),
+        radial-gradient(900px 500px at -10% 110%, rgba(122,92,255,.14), transparent 60%),
+        var(--ink);
+    }
+    #stage::before {
+      content: "";
+      position: absolute; inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size: 26px 26px;
+      opacity: .35;
+    }
+
+    .slide {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 1280px; height: 720px;
+      margin: 0;
+      transform: translate(-50%, -50%) scale(var(--s, 1));
+      transform-origin: center center;
+      background: rgba(16,21,34,.72);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 64px 84px 76px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .45s ease;
+      overflow: hidden;
+    }
+    .slide:nth-child(2) { background: linear-gradient(135deg, rgba(20,26,45,.92), rgba(10,13,22,.92)); }
+    .slide.active { opacity: 1; visibility: visible; }
+
+    .slide::after { /* running corner number */
+      content: attr(data-n) " / 7";
+      position: absolute;
+      right: 26px; bottom: 18px;
+      font-size: 12px;
+      letter-spacing: .12em;
+      color: var(--faint);
+    }
+
+    /* ---------- typography ---------- */
+    .kicker {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin: 0 0 14px;
+    }
+    .kicker .bar { display: inline-block; width: 26px; height: 2px; background: var(--gold); margin-right: 12px; vertical-align: middle; }
+    h1, h2 { margin: 0; line-height: 1.12; letter-spacing: -.015em; }
+    h1 { font-size: 76px; font-weight: 800; }
+    h2 { font-size: 46px; font-weight: 800; }
+    .serif { font-family: var(--serif); font-weight: 400; font-style: italic; }
+    .sub { color: var(--muted); font-size: 22px; max-width: 900px; line-height: 1.5; margin: 18px 0 0; }
+
+    /* ---------- bits ---------- */
+    .row { display: flex; gap: 22px; }
+    .grow { flex: 1; }
+    .muted { color: var(--muted); }
+    .faint { color: var(--faint); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 22px 24px;
+    }
+    .card h3 { margin: 0 0 10px; font-size: 18px; }
+    .card p, .card li { color: var(--muted); font-size: 15.5px; line-height: 1.55; }
+    .card ul { padding-left: 18px; margin: 0; }
+    .card li { margin: 6px 0; }
+    .card .em { color: var(--text); font-weight: 600; }
+    .pill {
+      display: inline-block;
+      padding: 7px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .pill.blue { border-color: rgba(47,107,255,.45); background: rgba(47,107,255,.14); color: #b9d0ff; }
+    .pill.violet { border-color: rgba(122,92,255,.5); background: rgba(122,92,255,.14); color: #cfc0ff; }
+    .pill.gold { border-color: rgba(245,185,60,.45); background: rgba(245,185,60,.12); color: #ffe3a1; }
+    .pill.green { border-color: rgba(47,209,149,.45); background: rgba(47,209,149,.12); color: #b3f2dc; }
+    .pill.red { border-color: rgba(255,107,107,.45); background: rgba(255,107,107,.12); color: #ffc4c4; }
+
+    .divider { height: 1px; background: var(--line); border: 0; margin: 26px 0; }
+
+    .hud {
+      position: fixed;
+      left: 50%; bottom: 14px;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(12,15,22,.78);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 14px;
+      z-index: 20;
+      font-size: 13px; color: var(--faint);
+      backdrop-filter: blur(6px);
+    }
+    .hud button {
+      background: none; border: 0; color: var(--muted);
+      font-size: 15px; cursor: pointer; padding: 2px 8px; border-radius: 6px;
+    }
+    .hud button:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .hud .dots { display: flex; gap: 6px; }
+    .hud .dot { width: 7px; height: 7px; border-radius: 50%; background: #2c3446; cursor: pointer; }
+    .hud .dot.active { background: var(--gold); }
+    .progress {
+      position: fixed; left: 0; bottom: 0; height: 3px; z-index: 21;
+      background: linear-gradient(90deg, var(--blue), var(--violet));
+      width: 0; transition: width .3s ease;
+    }
+
+    /* ---------- slide-specific ---------- */
+    .diagram-node { text-align: center; }
+    .diagram-node .box {
+      display: inline-block;
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-weight: 700;
+      font-size: 17px;
+    }
+    .diagram-node .cap { font-size: 12.5px; color: var(--faint); margin-top: 8px; }
+    .arrow { color: var(--faint); font-size: 22px; align-self: center; padding: 0 4px; }
+
+    .big-col {
+      border-left: 3px solid transparent;
+      padding-left: 22px;
+      font-size: 24px;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+    .big-col.blue { border-color: var(--blue); color: #cddcff; }
+    .big-col.gold { border-color: var(--gold); color: #ffe9bd; }
+
+    .chain { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    .chain .node {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      background: rgba(255,255,255,.03);
+    }
+    .chain .node small { display: block; font-weight: 500; color: var(--faint); font-size: 11px; margin-top: 2px; }
+    .cycle {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    .cycle .step {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0));
+    }
+    .cycle .step .n { font-family: var(--serif); font-style: italic; font-size: 34px; color: var(--gold); line-height: 1; }
+    .cycle .step h3 { margin: 10px 0 6px; font-size: 19px; }
+    .cycle .step p { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+    .mtl { display: flex; flex-direction: column; gap: 10px; }
+    .mtl .mm {
+      display: flex; align-items: center; gap: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 14px;
+      background: rgba(255,255,255,.025);
+    }
+    .mtl .mm .tag { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; color: var(--faint); width: 52px; flex: none; }
+    .mtl .mm.done { border-color: rgba(47,209,149,.4); }
+    .mtl .mm.done .tag { color: var(--green); }
+    .mtl .mm.next { border-color: rgba(245,185,60,.4); }
+    .mtl .mm.next .tag { color: var(--gold); }
+    .mtl .mm .t { font-weight: 600; font-size: 15px; flex: 1; }
+    .mtl .mm .d { color: var(--muted); font-size: 13px; }
+    .quote-line { font-family: var(--serif); font-style: italic; font-size: 30px; line-height: 1.45; color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <div id="stage">
+    <!-- Slides are injected by JS to keep the source DRY -->
+
+    <template id="slide-template">
+      <!-- filled per-slide in JS -->
+    </template>
+  </div>
+
+  <div class="hud">
+    <button id="prev" aria-label="Previous slide">&#8592;</button>
+    <span class="dots" id="dots"></span>
+    <button id="next" aria-label="Next slide">&#8594;</button>
+    <span id="counter">1 / 7</span>
+  </div>
+  <div class="progress" id="progress"></div>
+
+  <script>
+    /* ============================================================
+       TheGuild concept deck — 7 slides
+       Slide content is defined as HTML strings for clarity.
+       ============================================================ */
+
+    const SLIDES = [
+
+      /* ---- 1 · Title ---- */
+      `<div class="kicker"><span class="bar"></span>The Guild &middot; Education Concept</div>
+       <div class="grow" style="display:flex;flex-direction:column;justify-content:center;">
+         <h1>Africa has the <span style="color:var(--gold)">resources</span>.<br/>We build the <span style="color:var(--blue)">resourcefulness</span>.</h1>
+         <p class="sub" style="font-size:26px;">TheGuild connects schools, teachers and learners into living ecosystems that turn knowledge into capability &mdash; <span class="serif">quality education for everyone.</span></p>
+         <div class="row" style="margin-top:34px;gap:10px;flex-wrap:wrap;">
+           <span class="pill gold">Primary &amp; Secondary Schools</span>
+           <span class="pill blue">Independent, Local Governance</span>
+           <span class="pill violet">Standards-aligned Curriculum</span>
+           <span class="pill green">Measured, Delivered Outcomes</span>
+         </div>
+       </div>
+       <div style="color:var(--faint);font-size:14px;letter-spacing:.1em;">EAST AFRICA &middot; KENYA &middot; TANZANIA &middot; UGANDA &middot; RWANDA</div>`,
+
+      /* ---- 2 · The Challenge ---- */
+      `<div class="kicker"><span class="bar"></span>The Challenge</div>
+       <h2>The education gap is not a lack of resources.<br/>It&rsquo;s a lack of <span style="color:var(--gold)">coordination</span>.</h2>
+       <div class="row grow" style="margin-top:30px;align-items:stretch;">
+         <div class="card grow">
+           <h3 style="color:var(--green)">What East Africa already has</h3>
+           <ul>
+             <li><span class="em">The youngest population on earth</span> &mdash; a rising generation.</li>
+             <li><span class="em">Teachers, classrooms and schools</span> on the ground.</li>
+             <li><span class="em">A living culture of community</span> and oral learning.</li>
+             <li><span class="em">Real problems</span> to learn from: agriculture, water, energy, health, markets.</li>
+             <li><span class="em">Mobile-first connectivity</span> reaching the most remote villages.</li>
+           </ul>
+         </div>
+         <div class="card grow">
+           <h3 style="color:var(--red)">What learners still miss</h3>
+           <ul>
+             <li><span class="em">Enough trained teachers</span> &mdash; crowded classrooms, overwhelming ratios.</li>
+             <li><span class="em">One-size-fits-all, exam-driven curricula</span> that ignore context.</li>
+             <li><span class="em">Few mentors and role models</span> guiding real choices.</li>
+             <li><span class="em">Learning disconnected from life</span> &mdash; theory without application.</li>
+             <li><span class="em">Schools isolated</span> from each other&rsquo;s strengths and successes.</li>
+           </ul>
+         </div>
+       </div>
+       <div class="divider"></div>
+       <div class="quote-line grow">Resourcefulness is turning <span class="serif">&ldquo;what exists&rdquo;</span> into <span class="serif">&ldquo;what is possible.&rdquo;</span></div>`,
+    ];
+
+    /* ============================================================
+       The remaining slides are built in HTML blocks below; we append
+       SLIDES2..SLIDES7 to the array so the whole deck stays readable.
+       ============================================================ */
+    SLIDES.push(
+      /* ---- 3 · The Big Idea ---- */
+      `<div class="kicker"><span class="bar"></span>The Big Idea</div>
+       <h2>Education gaps are <span style="color:var(--blue)">coordination gaps</span>.</h2>
+       <p class="sub" style="margin-top:10px;">Make each school behave like a living ecosystem: departments that act, a curriculum that aims at goals, and learners who build. Then learning becomes a <span class="em">problem-solving engine</span>.</p>
+       <div class="grow" style="display:flex;flex-direction:column;justify-content:center;gap:22px;margin-top:26px;">
+         <div class="row diagram-node" style="align-items:center;justify-content:center;">
+           <div class="box" style="border-color:var(--gold)">Ecosystem</div>
+           <span class="arrow">&#8594;</span>
+           <div class="box">Space</div>
+           <span class="arrow">&#8594;</span>
+           <div class="box" style="border-color:var(--blue)">Content / Challenge</div>
+           <span class="arrow">&#8594;</span>
+           <div class="box" style="border-color:var(--violet)">Team</div>
+           <span class="arrow">&#8594;</span>
+           <div class="box" style="border-color:var(--green)">Project</div>
+         </div>
+         <div class="row" style="justify-content:center;flex-wrap:wrap;gap:12px;">
+           <span class="pill blue">Teacher &mdash; publishes &amp; teaches</span>
+           <span class="pill green">Learner &mdash; follows &amp; builds</span>
+           <span class="pill violet">Mentor &mdash; guides</span>
+           <span class="pill gold">Industry Partner &mdash; poses challenges</span>
+         </div>
+       </div>
+       <div class="row" style="gap:18px;flex-wrap:wrap;">
+         <div class="big-col blue">Knowledge that is <span class="serif">taught</span>&hellip;</div>
+         <div class="big-col gold">&hellip;becomes capability that is <span class="serif">demonstrated.</span></div>
+       </div>`,
+
+      /* ---- 4 · How it works ---- */
+      `<div class="kicker"><span class="bar"></span>How TheGuild Works</div>
+       <h2>One platform, four levels, <span style="color:var(--gold)">roles for everyone</span>.</h2>
+       <div class="grow" style="display:flex;flex-direction:column;justify-content:center;gap:34px;margin-top:26px;">
+         <div>
+           <div class="faint" style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;">Governance &mdash; the onboarding chain</div>
+           <div class="chain">
+             <span class="node" style="border-color:rgba(245,185,60,.5)">Super Admin<small>guides the whole network</small></span>
+             <span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node">Program Admin<small>runs a region or programme</small></span>
+             <span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node">Ecosystem Admin<small>leads ONE school</small></span>
+             <span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node">Space Admin<small>runs a department</small></span>
+             <span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node" style="border-color:rgba(47,209,149,.5)">Learners &amp; Teachers<small>join by invitation code</small></span>
+           </div>
+         </div>
+         <div>
+           <div class="faint" style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;">Instruction &mdash; the curriculum engine</div>
+           <div class="chain">
+             <span class="node">Goals</span><span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node">Grades</span><span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node">Terms</span><span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node">Units</span><span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node">Topics</span><span class="arrow" style="font-size:16px">&#8594;</span>
+             <span class="node" style="border-color:rgba(122,92,255,.5)">Lessons</span>
+             <span class="node" style="border-color:rgba(47,107,255,.5)">Activities &middot; Assessments &middot; Resources</span>
+           </div>
+         </div>
+         <div class="row" style="flex-wrap:wrap;gap:12px;">
+           <span class="pill blue">Per-space roles &mdash; the same person can be a Teacher in one space, a Learner in another</span>
+           <span class="pill green">Every ecosystem gets its own front door (subdomain)</span>
+         </div>
+       </div>`,
+
+      /* ---- 5 · The Delivery Cycle ---- */
+      `<div class="kicker"><span class="bar"></span>Teaching, Rebooted</div>
+       <h2>From curriculum to capability, <span style="color:var(--blue)">measured at every step</span>.</h2>
+       <div class="cycle grow" style="margin-top:34px;">
+         <div class="step" style="border-color:rgba(47,107,255,.4)">
+           <div class="n">1</div>
+           <h3>Plan</h3>
+           <p>Standards-aligned curricula and syllabi &mdash; grading policy, materials, objectives and teaching guidance, built once and shared.</p>
+         </div>
+         <div class="step" style="border-color:rgba(122,92,255,.4)">
+           <div class="n">2</div>
+           <h3>Teach</h3>
+           <p>Published lessons &mdash; self-paced pages or live classes &mdash; with activities, assessments and a shared library of local resources.</p>
+         </div>
+         <div class="step" style="border-color:rgba(245,185,60,.4)">
+           <div class="n">3</div>
+           <h3>Measure</h3>
+           <p>Every objective gets a visible status: <span class="pill green" style="padding:2px 10px;font-size:12px">developing</span> <span class="pill gold" style="padding:2px 10px;font-size:12px">achieved</span> <span class="pill blue" style="padding:2px 10px;font-size:12px">mastered</span></p>
+         </div>
+         <div class="step" style="border-color:rgba(47,209,149,.4)">
+           <div class="n">4</div>
+           <h3>Improve</h3>
+           <p>Curriculum evaluations and teacher guidance turn classroom evidence back into better plans &mdash; a loop that closes.</p>
+         </div>
+       </div>
+       <div class="divider"></div>
+       <div class="quote-line" style="font-size:24px;">A shared blueprint, delivered <span class="serif">locally</span>, evidenced <span class="serif">honestly</span>, and improved <span class="serif">continuously.</span></div>`,
+
+      /* ---- 6 · The Journey ---- */
+      `<div class="kicker"><span class="bar"></span>The Journey &amp; Roadmap</div>
+       <h2>One class &rarr; one school &rarr; one region &rarr; one alliance.</h2>
+       <div class="row grow" style="margin-top:30px;gap:26px;">
+         <div class="mtl grow">
+           <div class="mm done"><span class="tag">1&ndash;2</span><span class="t">The Core (shipped)</span><span class="d">School &rarr; department &rarr; lessons &rarr; teacher / learner</span></div>
+           <div class="mm next"><span class="tag">3</span><span class="t">Mentors (next)</span><span class="d">Guided learning, apprenticeship &amp; role history</span></div>
+           <div class="mm"><span class="tag">4</span><span class="t">Teams</span><span class="d">Learners collaborate inside a Space</span></div>
+           <div class="mm"><span class="tag">5&ndash;6</span><span class="t">Challenges &amp; Projects</span><span class="d">Teams solve real problems into projects</span></div>
+           <div class="mm"><span class="tag">7&ndash;8</span><span class="t">Alliances &amp; Impact</span><span class="d">Countries &amp; alliances &mdash; cross-school visibility, reporting</span></div>
+         </div>
+         <div class="card grow" style="display:flex;flex-direction:column;justify-content:center;gap:14px;">
+           <h3 style="color:var(--gold)">Why scaling works here</h3>
+           <p class="em" style="font-size:16.5px;color:#ffe9bd;margin:0;">One school proves the model &mdash; then the same geometry scales to an alliance of schools.</p>
+           <p style="font-size:15px;">Every ecosystem is <span class="em">owned and governed locally</span> (school, teachers, community), while quality &mdash; curricula, lessons, mentoring, measurement &mdash; is shared at network level.</p>
+           <p style="font-size:15px;">The onboarding chain ensures <span class="em">trained, approved leadership</span> before access is granted, so quality scales ahead of reach.</p>
+         </div>
+       </div>`,
+
+      /* ---- 7 · The Invitation ---- */
+      `<div class="kicker"><span class="bar"></span>The Invitation</div>
+       <h2>Quality education for everyone &mdash;<br/><span style="color:var(--gold)">starting with one school.</span></h2>
+       <div class="row grow" style="margin-top:32px;align-items:stretch;">
+         <div class="card grow">
+           <h3 style="color:var(--blue)">Local ownership</h3>
+           <p>Schools govern their own ecosystem &mdash; their people keep the keys. Trust grows from the inside out.</p>
+         </div>
+         <div class="card grow">
+           <h3 style="color:var(--violet)">Quality delivery</h3>
+           <p>Standards, shared curricula, rich lessons and honest measurement keep every learner visible.</p>
+         </div>
+         <div class="card grow">
+           <h3 style="color:var(--green)">Real-world relevance</h3>
+           <p>Projects that answer what students see every day turn classrooms into makers of change.</p>
+         </div>
+       </div>
+       <div class="divider"></div>
+       <div class="row" style="align-items:center;gap:24px;flex-wrap:wrap;">
+         <div class="grow quote-line" style="font-size:26px;">Africa&rsquo;s resources are already here.<br/>Let&rsquo;s give them a way to <span style="color:var(--gold)">work.</span></div>
+         <div class="row" style="flex-direction:column;gap:8px;">
+           <span class="pill blue">Pilot one school ecosystem</span>
+           <span class="pill violet">Train educators as ecosystem leads</span>
+           <span class="pill gold">Seed curricula in Swahili &amp; English</span>
+           <span class="pill green">Measure impact &amp; scale through alliances</span>
+         </div>
+       </div>`
+    );
+
+    /* ============================================================
+       Deck engine
+       ============================================================ */
+    const W = 1280, H = 720;
+    const stage = document.getElementById("stage");
+    const dotsWrap = document.getElementById("dots");
+    const counter = document.getElementById("counter");
+    const progress = document.getElementById("progress");
+    let current = 0;
+
+    function build() {
+      SLIDES.forEach((html, i) => {
+        const el = document.createElement("section");
+        el.className = "slide";
+        el.setAttribute("data-n", String(i + 1));
+        el.innerHTML = html;
+        stage.appendChild(el);
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        dot.dataset.i = String(i);
+        dot.addEventListener("click", () => go(i));
+        dotsWrap.appendChild(dot);
+      });
+      document.getElementById("prev").addEventListener("click", () => go(current - 1));
+      document.getElementById("next").addEventListener("click", () => go(current + 1));
+    }
+
+    function go(i) {
+      current = Math.max(0, Math.min(SLIDES.length - 1, i));
+      stage.querySelectorAll(".slide").forEach((el, idx) => el.classList.toggle("active", idx === current));
+      stage.querySelectorAll(".dot").forEach((d, idx) => d.classList.toggle("active", idx === current));
+      counter.textContent = (current + 1) + " / " + SLIDES.length;
+      progress.style.width = ((current + 1) / SLIDES.length) * 100 + "%";
+    }
+
+    function rescale() {
+      const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+      stage.style.setProperty("--s", Math.min(s, 1.35).toFixed(4));
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " " || e.key === "Enter") { e.preventDefault(); go(current + 1); }
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(current - 1); }
+      else if (e.key === "Home") { e.preventDefault(); go(0); }
+      else if (e.key === "End") { e.preventDefault(); go(SLIDES.length - 1); }
+    });
+
+    /* touch swipe */
+    let tx = 0;
+    window.addEventListener("touchstart", (e) => (tx = e.touches[0].clientX), { passive: true });
+    window.addEventListener("touchend", (e) => {
+      const dx = e.changedTouches[0].clientX - tx;
+      if (Math.abs(dx) > 60) go(current + (dx < 0 ? 1 : -1));
+    }, { passive: true });
+
+    window.addEventListener("resize", rescale);
+    build();
+    rescale();
+    const wanted = parseInt(new URLSearchParams(window.location.search).get("slide"), 10);
+    go(Number.isFinite(wanted) ? wanted - 1 : 0);
+
+    /* print/PDF: one slide per page */
+    const stylePrint = document.createElement("style");
+    stylePrint.textContent = `@media print {
+      body { overflow: visible; background: #fff; }
+      .hud, .progress, #stage::before { display: none; }
+      #stage { position: static; overflow: visible; background: #fff; }
+      .slide { position: static !important; transform: none !important; opacity: 1 !important; visibility: visible !important;
+        width: 1280px; height: 720px; margin: 0 auto 12px; border: 1px solid #ddd; page-break-after: always; }
+      .slide::after { color: #999; }
+    }`;
+    document.head.appendChild(stylePrint);
+  </script>
+</body>
+</html>

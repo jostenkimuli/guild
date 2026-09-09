@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Domain Model &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="domain-model">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>Domain Model</h1>
+      <p class="lead">
+        The entities, relationships and rules behind TheGuild. The single source of truth is
+        <code>docs/CONCEPTUAL_MODEL.md</code>; the schema, naming and UI stay in lockstep
+        with it.
+      </p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#core-entities">Core entities</a>
+        <a href="#relationships">Core relationships</a>
+        <a href="#constraints">Structural constraints</a>
+        <a href="#user-journey">User journey</a>
+        <a href="#curriculum-tree">The curriculum tree</a>
+        <a href="#approval-chain">Approval chain</a>
+        <a href="#schema-mapping">Schema mapping</a>
+        <a href="#roadmap">Roadmap entities</a>
+      </div>
+
+      <h2 id="core-entities">Core entities</h2>
+      <table>
+        <thead><tr><th>Entity</th><th>What it is</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Ecosystem</strong></td><td>The highest-level boundary (a university, a corporation, an alliance of countries). Hosts Spaces and Users.</td><td>A sample primary school</td></tr>
+          <tr><td><strong>User</strong></td><td>Any individual on the platform; roles are fluid and per-space.</td><td>Teacher, Learner, Mentor, Industry Partner</td></tr>
+          <tr><td><strong>Space</strong></td><td>A sub-community within an Ecosystem where specific engagement happens.</td><td>Physics Class, Regional Hackathon Group</td></tr>
+          <tr><td><strong>Content</strong></td><td>Educational materials used for teaching and learning (courses, videos, documents).</td><td>A fractions video, a worksheet</td></tr>
+          <tr><td><strong>Challenge</strong></td><td>A problem statement posted by an entity seeking solutions.</td><td>&ldquo;Reduce school food waste&rdquo; (Sprint 5)</td></tr>
+          <tr><td><strong>Project</strong></td><td>A collaborative solution built by users in response to a Challenge.</td><td>Market-stall pricing model (Sprint 6)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="relationships">Core relationships</h2>
+      <ul>
+        <li>Ecosystems <strong>host</strong> multiple Spaces and Users.</li>
+        <li>Teachers <strong>publish</strong> Content inside a Space.</li>
+        <li>Mentors <strong>guide</strong> Learners through Projects or Content.</li>
+        <li>Users <strong>form teams</strong> to collaborate on Projects.</li>
+        <li>Projects are <strong>submitted</strong> to solve specific Challenges.</li>
+      </ul>
+
+      <h2 id="constraints">Structural constraints</h2>
+      <div class="card">
+        <ul>
+          <li>A Challenge can be public to the whole Ecosystem <em>or</em> restricted to specific Spaces.</li>
+          <li>A User can be a Teacher in one Space and a Learner or Collaborator in another &mdash; <strong>roles are per-space, never global</strong>.</li>
+          <li>A Project must map directly to at least one Challenge to qualify for problem-solving tracks.</li>
+          <li>One ecosystem per creator: <code>ecosystems_one_per_creator</code>.</li>
+        </ul>
+      </div>
+
+      <h2 id="user-journey">User journey</h2>
+      <pre><code>[Ecosystem: Country/School]
+        │
+        ├──► [Space: Innovation Hub]
+        │         │
+        │         ├──► [Challenge Posted] ──► [Teams Formed] ──► [Project Created]
+        │                                                               ▲
+        └──► [Learning Track] ──────────────────────────────────────────┘
+                  │
+            (Mentors Guide)</code></pre>
+
+      <h2 id="curriculum-tree">The curriculum tree (Sprint 2)</h2>
+      <p>
+        A Space hosts one or more <code>curricula</code>. Each curriculum is a tree that
+        every row resolves up to; row-level security then scopes access through the
+        Space:
+      </p>
+      <pre><code>spaces
+  └─ curricula  (+ curriculum_goals, curriculum_evaluations)
+       └─ grades
+            └─ terms
+                 └─ units
+                      └─ topics
+                           ├─ learning_objectives
+                           ├─ content
+                           ├─ lessons
+                           │    ├─ activities
+                           │    ├─ assessments
+                           │    └─ lesson_resources ──► resources (shared M2M)
+                           └─ teaching_guidance
+      (units may also carry projects)</code></pre>
+      <table>
+        <thead><tr><th>Piece</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Curriculum</td><td>Belongs to exactly one Space; carries name, year, publish state and the curriculum goals it aims to achieve.</td></tr>
+          <tr><td>Grades &rarr; Terms &rarr; Units &rarr; Topics</td><td>The academic tree a curriculum is taught through.</td></tr>
+          <tr><td>Topic</td><td>What gets taught: ordering via <code>sequence_order</code>, <code>duration_weeks</code>, description.</td></tr>
+          <tr><td>Learning objectives</td><td>Ordered objectives for a topic (with success criteria in the delivery cycle).</td></tr>
+          <tr><td>Content / Teaching guidance</td><td>Topic-level materials for learners and teacher guidance respectively.</td></tr>
+          <tr><td>Lessons</td><td>Plan with title, duration, delivery type (<code>self_paced</code>/<code>live</code>/<code>hybrid</code>) and publish state; linked to a topic and optionally a teacher.</td></tr>
+          <tr><td>Lesson pages / activities / assessments</td><td>Ordered building blocks of a lesson (multi-page content, steps, quiz/exercise/test/project).</td></tr>
+          <tr><td>Resources</td><td>Shared library (link/video/document/text) linked to lessons many-to-many.</td></tr>
+          <tr><td>Projects (per unit)</td><td>Unit-level projects for learners.</td></tr>
+          <tr><td>Curriculum evaluations</td><td>Period + achievement rate per curriculum.</td></tr>
+          <tr><td>Syllabi</td><td>Per-curriculum teaching plan: grading policy, required materials, office hours, classroom expectations.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Every row resolves to its curriculum through <strong>SECURITY DEFINER helpers</strong>;
+        RLS then scopes <em>members-read / space-staff-write</em> through the Space. See
+        <a href="security.html">Auth, Roles &amp; RLS</a>.
+      </p>
+
+      <h2 id="approval-chain">Approval chain (Sprint 1)</h2>
+      <pre><code>super_admin ──creates──► program_admin (pending)
+  └─ approves program admins
+  └─ approves ecosystem admins
+        └─ OR delegates approval to a program admin  (can_approve_ecosystem_admins)
+
+program_admin ──creates──► ecosystem_admin (pending)
+
+ecosystem_admin ──creates──► ecosystem (auto-staffed)
+  └─ creates space admins (auto-approved)
+
+space_admin ──creates──► spaces + invitation codes
+  └─ signup with a code adds the subscriber as a member with the code's role</code></pre>
+      <p>
+        Ecosystem-admin approvals <strong>always start with the super admin</strong>, who can
+        approve directly or delegate that authority to a program admin.
+      </p>
+
+      <h2 id="schema-mapping">Schema mapping</h2>
+      <table>
+        <thead><tr><th>Model entity</th><th>Current table(s)</th></tr></thead>
+        <tbody>
+          <tr><td>User</td><td><code>profiles</code> (+ platform role, approval status, flags)</td></tr>
+          <tr><td>Ecosystem</td><td><code>ecosystems</code> (+ <code>ecosystem_staff</code>)</td></tr>
+          <tr><td>Space</td><td><code>spaces</code> (+ <code>space_memberships</code>, <code>space_edits</code>)</td></tr>
+          <tr><td>Invitation codes</td><td><code>invitation_codes</code></td></tr>
+          <tr><td>Content</td><td><code>curricula</code>, <code>grades</code>&hellip;<code>topics</code>, <code>lessons</code>, <code>resources</code>, <code>syllabi</code></td></tr>
+          <tr><td>Challenge</td><td><em>(redesigned table in Sprint 5)</em></td></tr>
+          <tr><td>Project</td><td><code>projects</code> (per unit) &mdash; overall model returns in Sprint 6</td></tr>
+          <tr><td>Team</td><td><em>(Sprint 4)</em></td></tr>
+        </tbody>
+      </table>
+      <p>
+        The old general-purpose <code>communities</code> / <code>problems</code> /
+        <code>projects</code> tables are gone and return redesigned in Sprints 5&ndash;6.
+      </p>
+
+      <h2 id="roadmap">Roadmap entities</h2>
+      <table>
+        <thead><tr><th>Sprint</th><th>Unlocks</th></tr></thead>
+        <tbody>
+          <tr><td>3</td><td>Mentors &mdash; assignment, guidance, role history</td></tr>
+          <tr><td>4</td><td>Teams &mdash; form/join teams, team pages</td></tr>
+          <tr><td>5</td><td>Challenges &mdash; post, visibility, board, lifecycle</td></tr>
+          <tr><td>6</td><td>Projects &mdash; create, detail, lifecycle, submission</td></tr>
+          <tr><td>7&ndash;8</td><td>Alliances &amp; impact at scale &mdash; ecosystem hierarchy, cross-ecosystem reporting</td></tr>
+        </tbody>
+      </table>
+
+      <div class="pager">
+        <a href="architecture.html"><span class="pkt">Previous</span>&larr; Architecture</a>
+        <a class="next" href="routes.html"><span class="pkt">Next</span>Routes &amp; Pages &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../docs/CONCEPTUAL_MODEL.md">Conceptual model</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

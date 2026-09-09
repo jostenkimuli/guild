@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UI Components &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="components">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>UI Components</h1>
+      <p class="lead">
+        A shadcn/ui kit plus project-specific forms, dialogs and panels. The rule: reuse the
+        kit, never hand-roll duplicates.
+      </p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#kit">shadcn/ui kit</a>
+        <a href="#layout">Layout &amp; navigation</a>
+        <a href="#console-components">Console components</a>
+        <a href="#space-components">Space components</a>
+        <a href="#styling">Styling &amp; theming</a>
+      </div>
+
+      <h2 id="kit">shadcn/ui kit (<code>components/ui</code>)</h2>
+      <table>
+        <thead><tr><th>Component</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Avatar</td><td>User avatars with initials fallback</td></tr>
+          <tr><td>Badge</td><td>Status / role chips</td></tr>
+          <tr><td>Button</td><td><code>buttonVariants</code> with cva</td></tr>
+          <tr><td>Card</td><td>Card + Header/Body/Footer/Description variants</td></tr>
+          <tr><td>Dialog</td><td>Modal with header/footer slots</td></tr>
+          <tr><td>DropdownMenu</td><td>Action menus</td></tr>
+          <tr><td>Input / Textarea / Label</td><td>Form controls</td></tr>
+          <tr><td>Separator</td><td>Dividers</td></tr>
+          <tr><td>Sheet</td><td>Slide-over panels</td></tr>
+          <tr><td>Skeleton</td><td>Loading placeholders</td></tr>
+          <tr><td>Sonner</td><td>Toast notifications (via <code>sonner</code>)</td></tr>
+          <tr><td>Table</td><td>Tabular lists (rosters, lists)</td></tr>
+          <tr><td>Tabs</td><td>Paned views</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="layout">Layout &amp; navigation</h2>
+      <table>
+        <thead><tr><th>Component</th><th>File</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>DashboardSidebar</code></td><td><code>dashboard-sidebar.tsx</code></td><td>Role-aware sidebar: nav groups by role, header, sign-out button. Rendered by <code>(dashboard)/layout.tsx</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="console-components">Console components (<code>components/console</code>)</h2>
+      <h3>Panels &amp; shared UI</h3>
+      <table>
+        <thead><tr><th>Component</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>ConsolePanel</code> / <code>EmptyState</code></td><td>Card wrapper and empty-state placeholder for admin panels.</td></tr>
+          <tr><td><code>Field</code></td><td>Reusable form-field wrapper (label + control + error).</td></tr>
+          <tr><td><code>Feedback</code></td><td>Success / error display powered by form action state.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Forms</h3>
+      <table>
+        <thead><tr><th>Form</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>CreateProgramAdminForm</code></td><td>Create a program admin account.</td></tr>
+          <tr><td><code>CreateEcosystemAdminForm</code></td><td>Create an ecosystem admin (with ecosystem type selector).</td></tr>
+          <tr><td><code>CreateSpaceAdminForm</code></td><td>Create a space admin account.</td></tr>
+          <tr><td><code>CreateEcosystemForm</code></td><td>Full ecosystem creation: name, type, vision, mission, school metadata.</td></tr>
+          <tr><td><code>CreateSpaceForm</code></td><td>Space creation (name, type, slug, description).</td></tr>
+          <tr><td><code>CreateInvitationCodeForm</code></td><td>Invitation code generation (space, grade, max uses, expiry).</td></tr>
+          <tr><td><code>SpaceEditForm</code></td><td>Space admin proposes edits; shows pending request status.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Dialogs &amp; buttons</h3>
+      <table>
+        <thead><tr><th>Component</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>CreateProgramAdminDialog</code></td><td>Dialog wrapper for <code>CreateProgramAdminForm</code>.</td></tr>
+          <tr><td><code>CreateEcosystemAdminDialog</code></td><td>Program-admin view for ecosystem admin creation.</td></tr>
+          <tr><td><code>CreateEcosystemAdminBySuperAdminDialog</code></td><td>Super-admin view (account is immediately approved).</td></tr>
+          <tr><td><code>CreateSpaceAdminDialog</code></td><td>Dialog for space admin creation.</td></tr>
+          <tr><td><code>CreateSpaceButton</code> / <code>CreateSpaceDialog</code></td><td>Toggle-button and dialog variants for space creation.</td></tr>
+          <tr><td><code>SpaceEditDialog</code></td><td>Dialog wrapper for space edit requests.</td></tr>
+          <tr><td><code>SpaceCard</code></td><td>Space tile with inline edit-request form.</td></tr>
+          <tr><td><code>CurriculumDialog</code></td><td><strong>6-step blueprint wizard</strong>: details &rarr; goals &rarr; grades &rarr; terms &rarr; units &rarr; topics. Backed by <code>saveCurriculumData</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="space-components">Space components (<code>components/spaces</code>)</h2>
+      <table>
+        <thead><tr><th>Component</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>SyllabiSection</code></td><td>Syllabus list with create/edit dialog integration.</td></tr>
+          <tr><td><code>SyllabusDialog</code></td><td>Inline syllabus create/edit: grading breakdown, materials chips, office hours, expectations.</td></tr>
+          <tr><td><code>SyllabusForm</code></td><td>Full-page syllabus form (used at <code>/spaces/[slug]/syllabus/new</code>).</td></tr>
+          <tr><td><code>InviteTeachersButton</code></td><td>Teacher invitation-code dialog (teachers page).</td></tr>
+          <tr><td><code>InviteLearnersButton</code></td><td>Learner invitation-code dialog with grade selection (students page).</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="styling">Styling &amp; theming</h2>
+      <ul>
+        <li><strong>Tailwind v4 CSS-first config</strong>: <code>globals.css</code> imports <code>tailwindcss</code>, <code>tw-animate-css</code>, <code>shadcn/tailwind.css</code>.</li>
+        <li>Full <strong>oklch color system</strong> with light/dark themes via <code>.dark</code> class and <code>@theme inline</code> mapping CSS variables to Tailwind tokens.</li>
+        <li>Base radius <code>0.625rem</code>; dedicated sidebar color tokens.</li>
+        <li><code>cn()</code> from <code>lib/utils.ts</code> (clsx + tailwind-merge) is the single class-merge helper.</li>
+        <li>Icons: <code>lucide-react</code>.</li>
+      </ul>
+
+      <div class="pager">
+        <a href="actions.html"><span class="pkt">Previous</span>&larr; Server Actions</a>
+        <a class="next" href="database.html"><span class="pkt">Next</span>Database &amp; Migrations &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../components.json">components.json</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

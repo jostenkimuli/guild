@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 
-import { CreateEcosystemForm } from "@/components/console/forms";
+import {
+  CreateEcosystemForm,
+  CreateSchoolEcosystemForm,
+} from "@/components/console/forms";
 import { ConsolePanel } from "@/components/console/panels";
 import { createClient } from "@/lib/supabase/server";
-import { ecosystemTypeLabel } from "@/lib/ecosystems";
+import { ecosystemTypeLabel, isSchoolType } from "@/lib/ecosystems";
 
 export default async function EcosystemRootPage() {
   const supabase = await createClient();
@@ -22,24 +25,32 @@ export default async function EcosystemRootPage() {
 
   const { data: ecosystems } = await supabase
     .from("ecosystems")
-    .select("id")
+    .select("id, slug")
     .eq("created_by", user.id);
   const ecosystem = ecosystems?.[0];
 
   if (ecosystem) {
-    redirect(`/ecosystem/${ecosystem.id}`);
+    redirect(`/ecosystem/${ecosystem.slug}`);
   }
+
+  const school = isSchoolType(profile.ecosystem_type);
 
   return (
     <div className="mx-auto w-full max-w-3xl p-6">
-      <ConsolePanel
-        title={`Create your ${ecosystemTypeLabel(profile.ecosystem_type)}`}
-        description="The details you provide become its public profile and metadata."
-      >
-        <CreateEcosystemForm
+      {school ? (
+        <CreateSchoolEcosystemForm
           ecosystemType={profile.ecosystem_type ?? undefined}
         />
-      </ConsolePanel>
+      ) : (
+        <ConsolePanel
+          title={`Create your ${ecosystemTypeLabel(profile.ecosystem_type)}`}
+          description="The details you provide become its public profile and metadata."
+        >
+          <CreateEcosystemForm
+            ecosystemType={profile.ecosystem_type ?? undefined}
+          />
+        </ConsolePanel>
+      )}
     </div>
   );
 }

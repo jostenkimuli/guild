@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { approveProgramAdmin, approveEcosystemAdmin } from "@/app/actions/console";
 import { ConsolePanel, EmptyState } from "@/components/console/panels";
 import { CreateProgramAdminDialog } from "@/components/console/create-program-admin-dialog";
+import { CreateEcosystemAdminBySuperAdminDialog } from "@/components/console/create-ecosystem-admin-super-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -231,7 +232,12 @@ export default async function AdminPage({
         )}
       </ConsolePanel>
 
-      <ConsolePanel title="Approved ecosystem admins">
+      <ConsolePanel
+        title="Approved ecosystem admins"
+        footer={
+          isSuperAdmin ? <CreateEcosystemAdminBySuperAdminDialog /> : undefined
+        }
+      >
         {approvedEcosystems.length > 0 ? (
           <div className="space-y-2">
             {approvedEcosystems.map((admin) => (

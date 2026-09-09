@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Database &amp; Migrations &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="database">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>Database &amp; Migrations</h1>
+      <p class="lead">
+        Supabase (Postgres) is the single source of truth. Every schema change ships as a
+        migration, types are regenerated, and seed data powers the local demo.
+      </p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#table-catalog">Table catalog</a>
+        <a href="#enums">Enums</a>
+        <a href="#migration-history">Migration history</a>
+        <a href="#grants-triggers">Grants &amp; triggers</a>
+        <a href="#seed-data">Seed data</a>
+        <a href="#workflow">Schema change workflow</a>
+        <a href="#ports">Local ports &amp; stack</a>
+      </div>
+
+      <h2 id="table-catalog">Table catalog</h2>
+      <h3>Core / onboarding</h3>
+      <div class="schema-row"><span class="schema-name">profiles</span><span class="schema-note">users &mdash; platform role, approval status, <code>must_change_password</code>, <code>can_approve_ecosystem_admins</code>, display name, avatar, bio, ecosystem type</span></div>
+      <div class="schema-row"><span class="schema-name">ecosystems</span><span class="schema-note">name, slug, type, vision, mission, description, <code>is_private</code>, <code>raw_ecosystem_meta_data</code> (jsonb), <code>calendar_year</code>, <code>created_by</code></span></div>
+      <div class="schema-row"><span class="schema-name">ecosystem_staff</span><span class="schema-note">who administers an ecosystem (<code>user_id</code> + <code>ecosystem_id</code>, role <code>ecosystem_admin</code>) &mdash; auto-created when an ecosystem is made</span></div>
+      <div class="schema-row"><span class="schema-name">spaces</span><span class="schema-note">ecosystem_id, name, slug, description, type (department/innovation_hub/project_group), <code>created_by</code></span></div>
+      <div class="schema-row"><span class="schema-name">space_memberships</span><span class="schema-note">per-space role link, <code>UNIQUE (space_id, user_id)</code>; creator auto-added as <code>admin</code></span></div>
+      <div class="schema-row"><span class="schema-name">invitation_codes</span><span class="schema-note">join codes: space, code, role, <code>created_by</code>, <code>max_uses</code>, <code>expires_at</code>, optional <code>grade_id</code></span></div>
+      <div class="schema-row"><span class="schema-name">space_edits</span><span class="schema-note">space edit requests: <code>edited_by</code>, <code>changes</code>, status, approver + timestamp</span></div>
+      <div class="schema-row"><span class="schema-name">sessions / objective_results</span><span class="schema-note">delivery events + evidence per session/objective/learner</span></div>
+
+      <h3>Curriculum tree (Sprint 2)</h3>
+      <div class="schema-row"><span class="schema-name">curricula</span><span class="schema-note">space_id, name, year, <code>is_published</code>/<code>published_at</code>, <code>created_by</code></span></div>
+      <div class="schema-row"><span class="schema-name">curriculum_goals</span><span class="schema-note">goals a curriculum aims to achieve</span></div>
+      <div class="schema-row"><span class="schema-name">grades &rarr; terms &rarr; units &rarr; topics</span><span class="schema-note">the academic tree; topics carry <code>duration_weeks</code> + <code>sequence_order</code></span></div>
+      <div class="schema-row"><span class="schema-name">learning_objectives</span><span class="schema-note">ordered objectives per topic</span></div>
+      <div class="schema-row"><span class="schema-name">content</span><span class="schema-note">topic-level content items (title, description)</span></div>
+      <div class="schema-row"><span class="schema-name">lessons</span><span class="schema-note">topic_id, title, description, <code>estimated_duration_minutes</code>, <code>delivery_type</code>, publish state, optional <code>teacher_id</code></span></div>
+      <div class="schema-row"><span class="schema-name">lesson_pages</span><span class="schema-note">multi-page lesson content: title, body, sequence, <code>video_url</code></span></div>
+      <div class="schema-row"><span class="schema-name">teaching_guidance</span><span class="schema-note">teacher guidance per topic</span></div>
+      <div class="schema-row"><span class="schema-name">activities / assessments</span><span class="schema-note">ordered lesson steps and checks (quiz/exercise/test/project)</span></div>
+      <div class="schema-row"><span class="schema-name">resources / lesson_resources</span><span class="schema-note">shared resource library linked to lessons many-to-many</span></div>
+      <div class="schema-row"><span class="schema-name">projects</span><span class="schema-note">unit-level projects (Sprint 2 seed; redesigned model returns in Sprint 6)</span></div>
+      <div class="schema-row"><span class="schema-name">curriculum_evaluations</span><span class="schema-note">period + achievement rate per curriculum</span></div>
+      <div class="schema-row"><span class="schema-name">syllabi</span><span class="schema-note">per-curriculum teaching plan: grading policy, required materials, instructor notes, office hours, classroom expectations, <code>teacher_id</code></span></div>
+
+      <h2 id="enums">Enums</h2>
+      <table>
+        <thead><tr><th>Enum</th><th>Values</th></tr></thead>
+        <tbody>
+          <tr><td><code>ecosystem_type</code></td><td><code>nursery_school</code>, <code>primary_school</code>, <code>secondary_school</code>, <code>university</code></td></tr>
+          <tr><td><code>space_type</code></td><td><code>department</code>, <code>innovation_hub</code>, <code>project_group</code></td></tr>
+          <tr><td><code>user_space_role</code></td><td><code>admin</code>, <code>teacher</code>, <code>learner</code></td></tr>
+          <tr><td><code>profile_role</code></td><td><code>super_admin</code>, <code>program_admin</code>, <code>ecosystem_admin</code>, <code>space_admin</code>, <code>member</code></td></tr>
+          <tr><td><code>profile_status</code></td><td><code>pending</code>, <code>approved</code></td></tr>
+          <tr><td><code>assessment_type</code></td><td><code>quiz</code>, <code>exercise</code>, <code>test</code>, <code>project</code></td></tr>
+          <tr><td><code>delivery_type</code></td><td><code>self_paced</code>, <code>live</code>, <code>hybrid</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="migration-history">Migration history</h2>
+      <p>31 migrations in <code>supabase/migrations/</code>, applied in timestamp order by <code>npm run db:reset</code>.</p>
+      <table>
+        <thead><tr><th>Migration</th><th>What it shipped</th></tr></thead>
+        <tbody>
+          <tr><td><code>20260812000000_init.sql</code></td><td>Initial schema: <code>profiles</code>, old <code>communities</code>/<code>community_members</code>/<code>problems</code>/<code>projects</code>, RLS + grants, auth + updated-at triggers</td></tr>
+          <tr><td><code>20260812000001_ecosystems_spaces.sql</code></td><td>The <code>ecosystems</code>/<code>spaces</code>/<code>space_memberships</code> domain; enums; drops the old community layer</td></tr>
+          <tr><td><code>20260813000001_admin_onboarding.sql</code></td><td>Admin layer: <code>profiles</code> role/status/flags, <code>ecosystem_staff</code>, <code>invitation_codes</code>, <code>admin_create_user</code> + <code>invitation_code_info</code> RPCs, auto-assign triggers</td></tr>
+          <tr><td><code>20260814000000_super_admin.sql</code></td><td>Super admin role + <code>can_approve_ecosystem_admins</code> delegation flag; updated RPC</td></tr>
+          <tr><td><code>20260814000001_super_admin_policies.sql</code></td><td>RLS policies for super admin / delegated program admin approvals</td></tr>
+          <tr><td><code>20260815000000_curriculum_structure.sql</code></td><td>Full Sprint 2 curriculum tree + SECURITY DEFINER helpers + RLS + grants</td></tr>
+          <tr><td><code>20260815000001_ecosystem_privacy_and_types.sql</code></td><td>Ecosystem privacy and type refinements</td></tr>
+          <tr><td><code>20260815000002_ecosystem_console_roles.sql</code></td><td>Console role refinements</td></tr>
+          <tr><td><code>20260816000000_space_lesson_approvals.sql</code></td><td>Space lesson approval workflows</td></tr>
+          <tr><td><code>20260816000001_ecosystem_admin_review_policies.sql</code></td><td>Ecosystem admin review/approval RLS policies</td></tr>
+          <tr><td><code>20260816000002_ecosystem_admin_space_updates.sql</code></td><td>Ecosystem admin space-wide update rights</td></tr>
+          <tr><td><code>20260820000000_syllabus_and_lesson_delivery.sql</code></td><td><code>syllabi</code> + lesson delivery fields</td></tr>
+          <tr><td><code>20260820000001_lesson_content_pages.sql</code></td><td><code>lesson_pages</code> for multi-page lesson content</td></tr>
+          <tr><td><code>20260821000000_blueprint_delegation_and_lesson_publishing.sql</code></td><td>Blueprint delegation + lesson publishing enhancements</td></tr>
+          <tr><td><code>20260821000001_rename_classroom_to_department.sql</code></td><td>Renamed &ldquo;classroom&rdquo; space type &rarr; &ldquo;department&rdquo;</td></tr>
+          <tr><td><code>20260821000002_space_blueprint_delegation.sql</code></td><td>Space blueprint delegation support</td></tr>
+          <tr><td><code>20260821000003_optimizations_grants_indexes.sql</code></td><td>Performance optimizations, additional grants and indexes</td></tr>
+          <tr><td><code>20260821000004_drop_blueprint_delegation_schema.sql</code></td><td>Dropped blueprint delegation schema (reverted experiment)</td></tr>
+          <tr><td><code>20260822000000_ecosystem_admin_space_wide_rights.sql</code></td><td>Ecosystem admin space-wide governance rights</td></tr>
+          <tr><td><code>20260823000000_curricula_insert_returning_fix.sql</code></td><td>Fixed <code>curricula</code> INSERT RETURNING for PG17 compatibility</td></tr>
+          <tr><td><code>20260824000000_curricula_publish_state.sql</code></td><td>Added <code>is_published</code> / <code>published_at</code> to <code>curricula</code></td></tr>
+          <tr><td><code>20260825000000_syllabus_localization.sql</code></td><td>Syllabus localization</td></tr>
+          <tr><td><code>20260825000001_lesson_page_video_url.sql</code></td><td>Added <code>video_url</code> to <code>lesson_pages</code></td></tr>
+          <tr><td><code>20260825000002_subjects.sql</code></td><td>Subjects concept</td></tr>
+          <tr><td><code>20260825000003_universal_node_abstraction.sql</code></td><td>Universal node abstraction for the curriculum tree</td></tr>
+          <tr><td><code>20260825000004_grade_enrollments.sql</code></td><td>Grade enrollment support</td></tr>
+          <tr><td><code>20260826000000_learner_dashboard_support.sql</code></td><td>Learner dashboard support fields</td></tr>
+          <tr><td><code>20260827000000_invitation_grade_enrollment.sql</code></td><td>Invitation codes can link to grade enrollment</td></tr>
+          <tr><td><code>20260829000000_ecosystem_subdomain_slugs.sql</code></td><td>Ecosystem subdomain slug infrastructure</td></tr>
+          <tr><td><code>20260829000001_super_admin_auto_approve_ecosystem_admins.sql</code></td><td>Super-admin-created ecosystem admins are auto-approved</td></tr>
+          <tr><td><code>20260902000001_rls_ecosystem_select_returning_safe.sql</code></td><td>PG17 fix: <code>ecosystems_select_visible</code> policy evaluates row-native columns instead of re-reading the same table (INSERT/UPDATE&hellip;RETURNING safe)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="grants-triggers">Grants &amp; triggers</h2>
+      <ul>
+        <li>This Supabase version does <strong>not auto-grant</strong> privileges to <code>anon</code>/<code>authenticated</code> &mdash; every new table gets explicit <code>GRANT</code>s in its migration.</li>
+        <li>RLS is <strong>enabled on every table</strong>; policies are the security boundary (details in <a href="security.html">Auth, Roles &amp; RLS</a>).</li>
+        <li><code>on_auth_user_created</code> trigger auto-creates a <code>profiles</code> row on signup.</li>
+        <li><code>set_updated_at</code> trigger maintains <code>updated_at</code> on key tables.</li>
+        <li>SECURITY DEFINER helpers resolve any curriculum row (deep or shallow) to its Space so RLS can scope through it; profile role/status/delegation flags are locked by a trigger to the super admin (and, for ecosystem-admin status, to a delegated program admin).</li>
+      </ul>
+
+      <h2 id="seed-data">Seed data (<code>supabase/seed.sql</code>)</h2>
+      <ul>
+        <li><strong>6 accounts</strong> covering every platform role (see <a href="getting-started.html#demo-accounts">demo accounts</a>).</li>
+        <li><strong>1 ecosystem</strong>: &ldquo;A Sample School Ecosystem&rdquo; (primary school, Nairobi, Kenya) with full school metadata (director, headteacher, location).</li>
+        <li><strong>1 space</strong>: &ldquo;Primary Mathematics Space&rdquo; (department) with memberships: space admin, teacher (ecoadmin + testteacher), learner.</li>
+        <li><strong>Invitation code</strong> <code>MATHLAB</code> (learner, max 50 uses).</li>
+        <li><strong>Published curriculum</strong> &ldquo;Primary Mathematics&rdquo; (2026): 3 goals, 3 grades, terms, 6 topics, 12 learning objectives, 4 published self-paced lessons (each with overview page, 3 activities, 1 assessment), 5 shared resources, 6 teaching-guidance notes, 3 unit projects, 2 curriculum evaluations (Term 1: 72.5%, Term 2: 78%).</li>
+        <li><strong>Syllabus</strong>: pass mark 50%, breakdown Homework 20% / Mid-term 30% / Final exam 50%.</li>
+      </ul>
+
+      <h2 id="workflow">Schema change workflow</h2>
+      <div class="card">
+        <ol>
+          <li>Add a migration in <code>supabase/migrations/</code> with the new timestamp filename.</li>
+          <li>Enable RLS on new tables <strong>and</strong> add explicit <code>GRANT</code>s.</li>
+          <li>Run <code>npm run db:reset</code> (reapplies migrations + seed from scratch) and verify in the app.</li>
+          <li>Run <code>npm run db:types</code> to regenerate <code>src/lib/supabase/database.types.ts</code>.</li>
+          <li>Commit the migration <strong>and</strong> the regenerated type diff together.</li>
+          <li>Verify with positive and negative RLS tests (see DoD in <a href="engineering.html">Engineering Process</a>).</li>
+        </ol>
+      </div>
+      <div class="callout warn">
+        <div class="co-title">Ports</div>
+        Local stack ports are remapped in <code>supabase/config.toml</code> (API <code>55421</code>, DB <code>55422</code>, Studio <code>55423</code>) because the default <code>5432x</code> range is Hyper-V-reserved on this host. Do not revert.
+      </div>
+
+      <div class="pager">
+        <a href="components.html"><span class="pkt">Previous</span>&larr; UI Components</a>
+        <a class="next" href="security.html"><span class="pkt">Next</span>Auth, Roles &amp; RLS &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../supabase/seed.sql">seed.sql</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

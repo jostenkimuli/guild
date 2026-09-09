@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setup &amp; Prerequisites &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="getting-started">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>Setup &amp; Prerequisites</h1>
+      <p class="lead">Everything you need to go from a clean machine to a running instance of TheGuild with seeded demo data.</p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#prerequisites">Prerequisites</a>
+        <a href="#step-by-step">Step-by-step setup</a>
+        <a href="#common-commands">Common commands</a>
+        <a href="#demo-accounts">Demo accounts</a>
+        <a href="#windows-notes">Windows notes</a>
+        <a href="#environment-variables">Environment variables</a>
+      </div>
+
+      <h2 id="prerequisites">Prerequisites</h2>
+      <table>
+        <thead><tr><th>Tool</th><th>Version / notes</th></tr></thead>
+        <tbody>
+          <tr><td>Node.js</td><td>20+</td></tr>
+          <tr><td>Docker</td><td>Running &mdash; required for the local Supabase stack</td></tr>
+          <tr><td>Supabase CLI</td><td>Globally installed: <code>npm.cmd install -g supabase</code></td></tr>
+          <tr><td>npm</td><td>Use <code>npm.cmd</code> on this host (see <a href="#windows-notes">Windows notes</a>)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="step-by-step">Step-by-step setup</h2>
+      <div class="code-title">1. Install dependencies</div>
+      <pre><code>npm install</code></pre>
+
+      <div class="code-title">2. Start the local Supabase stack</div>
+      <p>First run pulls and starts the necessary Docker images:</p>
+      <pre><code>npm run db:start</code></pre>
+
+      <div class="code-title">3. Configure environment variables</div>
+      <pre><code>copy .env.example .env.local</code></pre>
+      <p>Fill in the keys printed by <code>supabase status</code>:</p>
+      <pre><code>NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:55421
+NEXT_PUBLIC_SUPABASE_ANON_KEY=&lt;anon key&gt;
+SUPABASE_SERVICE_ROLE_KEY=&lt;service role key&gt;</code></pre>
+      <p>
+        Optional: <code>NEXT_PUBLIC_APP_HOST</code> sets the base hostname used by the
+        subdomain feature (defaults to <code>localhost</code>).
+      </p>
+
+      <div class="code-title">4. Apply migrations + seed data</div>
+      <pre><code>npm run db:reset</code></pre>
+      <p>
+        This reapplies every migration in <code>supabase/migrations/</code> from scratch and
+        runs <code>supabase/seed.sql</code>. Use it after pulling new schema work; it is
+        non-destructive to anything outside the local database.
+      </p>
+
+      <div class="code-title">5. Run the app</div>
+      <pre><code>npm run dev</code></pre>
+      <p>Open <a href="http://localhost:3000" rel="noreferrer">http://localhost:3000</a>.</p>
+
+      <div class="callout warn">
+        <div class="co-title">After any schema change</div>
+        Re-run <code>npm run db:reset</code> and <code>npm run db:types</code>, and commit the
+        regenerated <code>src/lib/supabase/database.types.ts</code>. Details in
+        <a href="database.html">Database &amp; Migrations</a>.
+      </div>
+
+      <h2 id="common-commands">Common commands</h2>
+      <table>
+        <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>npm run dev</code></td><td>Dev server (Turbopack) on <code>:3000</code></td></tr>
+          <tr><td><code>npm run lint</code></td><td>ESLint</td></tr>
+          <tr><td><code>npm run typecheck</code></td><td>TypeScript <code>--noEmit</code></td></tr>
+          <tr><td><code>npm run build</code></td><td>Production build (includes typecheck)</td></tr>
+          <tr><td><code>npm run db:start</code></td><td>Start local Supabase</td></tr>
+          <tr><td><code>npm run db:stop</code></td><td>Stop local Supabase</td></tr>
+          <tr><td><code>npm run db:reset</code></td><td>Rebuild DB from migrations + seed</td></tr>
+          <tr><td><code>npm run db:types</code></td><td>Regenerate Supabase TypeScript types</td></tr>
+          <tr><td><code>npm run studio</code></td><td>Supabase Studio UI on <code>:55423</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="demo-accounts">Demo accounts</h2>
+      <p>Seeded by <code>supabase/seed.sql</code>. Trying the full onboarding flow:
+        log in as <code>superadmin@theguild.dev</code>, create a program admin (starts
+        pending), approve it, then sign in as that program admin to create an ecosystem
+        admin.</p>
+      <table>
+        <thead><tr><th>Role</th><th>Email</th><th>Password</th><th>In the seed</th></tr></thead>
+        <tbody>
+          <tr><td>Super admin</td><td><code>superadmin@theguild.dev</code></td><td><code>superadmin-password</code></td><td>Creates + approves program admins, approves ecosystem admins, delegates approval authority</td></tr>
+          <tr><td>Program admin</td><td><code>demo@theguild.dev</code></td><td><code>demo-password</code></td><td>Creates ecosystem admins; approves them once delegation is granted</td></tr>
+          <tr><td>Ecosystem admin</td><td><code>ecoadmin@theguild.dev</code></td><td><code>ecoadmin-password</code></td><td>Owns &ldquo;A Sample School Ecosystem&rdquo;; creates space admins</td></tr>
+          <tr><td>Space admin</td><td><code>spaceadmin@theguild.dev</code></td><td><code>spaceadmin-password</code></td><td>Owns &ldquo;Primary Mathematics Space&rdquo;; generates invitation codes</td></tr>
+          <tr><td>Teacher</td><td><code>testteacher@example.com</code></td><td><code>testpass123</code></td><td>Teacher in &ldquo;Primary Mathematics Space&rdquo; (signs in directly)</td></tr>
+          <tr><td>Learner</td><td><code>learner@theguild.dev</code></td><td><code>learner-password</code></td><td>Learner in &ldquo;Primary Mathematics Space&rdquo;</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Invitation code <code>MATHLAB</code> (role learner, max 50 uses) is seeded for
+        joining the Primary Mathematics Space.
+      </p>
+
+      <div class="callout info">
+        <div class="co-title">Admin-created accounts</div>
+        Accounts created by admins start <code>pending</code> and
+        <code>must_change_password</code>; the new user sets their own password on first
+        login before the account is usable.
+      </div>
+
+      <h2 id="windows-notes">Windows notes</h2>
+      <ul>
+        <li>This host blocks <code>*.ps1</code> command shims &mdash; use <code>npm.cmd</code> and <code>supabase.cmd</code>.</li>
+        <li>The default Supabase <code>5432x</code> port range is reserved by Hyper-V. Ports are remapped in <code>supabase/config.toml</code>: API <code>55421</code>, DB <code>55422</code>, Studio <code>55423</code>. Do not revert.</li>
+        <li><code>next.config.ts</code> sets <code>allowedDevOrigins: ["*.localhost"]</code> so subdomains like <code>a-sample-school.localhost:3000</code> work in dev.</li>
+      </ul>
+
+      <h2 id="environment-variables">Environment variables</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Where used</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>client + server</td><td>Supabase API endpoint (<code>http://127.0.0.1:55421</code> locally)</td></tr>
+          <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td>client + server</td><td>Public anon key (RLS-scoped)</td></tr>
+          <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>server only</td><td>Service-role key used by <code>admin_create_user</code> flows</td></tr>
+          <tr><td><code>NEXT_PUBLIC_APP_HOST</code></td><td><code>lib/subdomain.ts</code></td><td>Base host for ecosystem subdomains (default <code>localhost</code>)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout danger">
+        <div class="co-title">Never commit secrets</div>
+        <code>.env.local</code> is git-ignored. The service-role key bypasses RLS &mdash; keep
+        it server-only.
+      </div>
+
+      <div class="pager">
+        <a href="index.html"><span class="pkt">Previous</span>&larr; Overview</a>
+        <a class="next" href="architecture.html"><span class="pkt">Next</span>Architecture &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../README.md">Repository README</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

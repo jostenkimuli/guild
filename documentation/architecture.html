@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="architecture">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>Architecture</h1>
+      <p class="lead">How the pieces fit together: a server-first Next.js 16 app backed by Supabase, guarded by a session-refresh proxy.</p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#stack">Tech stack</a>
+        <a href="#high-level">High-level flow</a>
+        <a href="#rendering-model">Rendering &amp; component model</a>
+        <a href="#supabase-clients">Supabase clients</a>
+        <a href="#proxy">The proxy (Next 16 "middleware")</a>
+        <a href="#subdomains">Ecosystem subdomains</a>
+        <a href="#conventions">Conventions to follow</a>
+      </div>
+
+      <h2 id="stack">Tech stack</h2>
+      <table>
+        <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+        <tbody>
+          <tr><td>Framework</td><td>Next.js <code>16.3.0</code> &mdash; App Router, Turbopack in dev</td></tr>
+          <tr><td>Language</td><td>TypeScript (strict), path alias <code>@/*</code> &rarr; <code>./src/*</code></td></tr>
+          <tr><td>Styling</td><td>Tailwind CSS v4 (CSS-first config), tw-animate-css, shadcn/tailwind.css tokens</td></tr>
+          <tr><td>UI kit</td><td>shadcn/ui (radix-nova) with Radix primitives, Lucide icons, sonner toasts</td></tr>
+          <tr><td>Backend</td><td>Supabase: hosted Postgres, Auth, Row-Level Security, storage of schema via migrations</td></tr>
+          <tr><td>State flow</td><td>Server Components + Server Actions; client components only for interactivity (forms, dialogs, toasts)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="high-level">High-level flow</h2>
+      <pre><code>Browser
+  │  HTTPS
+  ▼
+src/proxy.ts (Next 16 "middleware")
+  ├─ refresh Supabase session cookies
+  ├─ rewrite ecosystem subdomains  → /ecosystem/[slug]/...
+  └─ auth guard redirects          → /login
+  │
+  ▼
+Next.js App Router (server components by default)
+  ├─ layout.tsx            globals.css, fonts
+  ├─ (dashboard)/layout    auth gate + role-aware sidebar
+  ├─ pages                 read data via @/lib/supabase/server
+  ├─ server actions        write data (src/app/actions/*)
+  └─ components/ui         shadcn primitives
+  │
+  ▼
+Supabase
+  ├─ Auth        cookies, session refresh (via the proxy)
+  ├─ Postgres    RLS policies = the security boundary
+  └─ types       database.types.ts regenerated via `npm run db:types`</code></pre>
+
+      <h2 id="rendering-model">Rendering &amp; component model</h2>
+      <ul>
+        <li><strong>Server components are the default.</strong> All pages and layouts fetch data server-side; the <code>&quot;use client&quot;</code> directive is reserved for pieces that need browser behavior (forms, dialogs, toasts).</li>
+        <li><strong><code>params</code> / <code>searchParams</code> are Promises</strong> in this Next.js version &mdash; always <code>await</code> them in page components.</li>
+        <li>Middleware was renamed to <strong>proxy</strong> in Next 16; the module lives at <code>src/proxy.ts</code>.</li>
+        <li>Server data reads happen in page/layout components or server actions; there are no legacy API routes for the core flows.</li>
+      </ul>
+
+      <h2 id="supabase-clients">Supabase clients</h2>
+      <table>
+        <thead><tr><th>Module</th><th>Where used</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>@/lib/supabase/client</code></td><td>Browser (client components)</td><td><code>createBrowserClient</code> from <code>@supabase/ssr</code>, typed with <code>Database</code></td></tr>
+          <tr><td><code>@/lib/supabase/server</code></td><td>Server components &amp; actions</td><td>Awaits <code>cookies()</code>; handles the immutable cookie store in Server Components</td></tr>
+        </tbody>
+      </table>
+      <p>
+        All data access is typed against the generated
+        <code>src/lib/supabase/database.types.ts</code> file. After any schema change,
+        regenerate with <code>npm run db:types</code> and commit the diff.
+      </p>
+
+      <h2 id="proxy">The proxy</h2>
+      <p>
+        Next.js 16 renamed middleware to <em>proxy</em>. <code>src/proxy.ts</code> runs on
+        every non-static request (static assets, images and favicon are excluded). It
+        performs three jobs:
+      </p>
+      <h3>1. Session refresh</h3>
+      <p>
+        A Supabase server client is created that reads and writes cookies, ensuring cookies
+        stay fresh. This lives in the proxy rather than per-page so the session never goes
+        stale.
+      </p>
+      <h3>2. Ecosystem subdomain rewriting</h3>
+      <p>
+        When a request arrives on a subdomain such as <code>school.localhost</code>, the
+        proxy extracts the ecosystem slug and rewrites paths:
+      </p>
+      <table>
+        <thead><tr><th>Requested path</th><th>Rewritten to</th></tr></thead>
+        <tbody>
+          <tr><td><code>/</code></td><td><code>/ecosystem/[slug]</code></td></tr>
+          <tr><td><code>/spaces</code></td><td><code>/ecosystem/[slug]/spaces</code></td></tr>
+          <tr><td><code>/staff</code>, <code>/members</code>, <code>/students</code></td><td><code>/ecosystem/[slug]/&lt;segment&gt;</code></td></tr>
+          <tr><td>Anything else (<code>/login</code>, <code>/s/...</code>)</td><td>Resolved normally under the subdomain</td></tr>
+        </tbody>
+      </table>
+      <h3>3. Auth guard redirects</h3>
+      <ul>
+        <li>Unauthenticated users hitting <code>/admin</code>, <code>/ecosystem</code>, <code>/spaces</code> or <code>/setup-password</code> &rarr; redirected to <code>/login</code>.</li>
+        <li>Authenticated users on <code>/login</code> &rarr; redirected to the role-appropriate page (<code>/admin</code> for super/program admin, <code>/ecosystem</code> for ecosystem admin, <code>/</code> otherwise).</li>
+      </ul>
+
+      <h2 id="subdomains">Ecosystem subdomains</h2>
+      <p>
+        Each ecosystem gets a slug-driven subdomain, expressing the product goal of
+        &ldquo;every ecosystem has its own front door&rdquo;.
+      </p>
+      <ul>
+        <li><code>NEXT_PUBLIC_APP_HOST</code> (default <code>localhost</code>) is the base host; <code>lib/subdomain.ts</code> exposes <code>ecosystemSlugFromHost()</code>.</li>
+        <li><code>next.config.ts</code> allows <code>*.localhost</code> dev origins so subdomains work under Turbopack.</li>
+        <li>Public profile pages live at <code>/s/[slug]</code> and are reachable regardless of subdomain.</li>
+      </ul>
+
+      <h2 id="conventions">Conventions to follow</h2>
+      <div class="card">
+        <ul>
+          <li>Server components by default; add <code>&quot;use client&quot;</code> only where interactivity demands it.</li>
+          <li>Always <code>await</code> <code>params</code> / <code>searchParams</code>.</li>
+          <li>Data access goes through the typed Supabase clients &mdash; never raw SQL from app code.</li>
+          <li>Every schema change is a migration with RLS + explicit grants (see <a href="database.html">Database</a>).</li>
+          <li>Use shadcn/ui components; don&rsquo;t hand-roll duplicates.</li>
+          <li>No secrets in code or repository.</li>
+        </ul>
+      </div>
+
+      <div class="pager">
+        <a href="getting-started.html"><span class="pkt">Previous</span>&larr; Setup &amp; Prerequisites</a>
+        <a class="next" href="domain-model.html"><span class="pkt">Next</span>Domain Model &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../docs/CONCEPTUAL_MODEL.md">Conceptual model</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

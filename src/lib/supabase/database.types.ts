@@ -355,6 +355,7 @@ export type Database = {
       }
       ecosystems: {
         Row: {
+          badge_url: string | null
           calendar_year: number | null
           created_at: string
           created_by: string
@@ -364,10 +365,15 @@ export type Database = {
           mission: string | null
           name: string
           raw_ecosystem_meta_data: Json
+          slug: string
+          theme_accent: string | null
+          theme_primary: string | null
+          theme_supporting: string
           type: Database["public"]["Enums"]["ecosystem_type"]
           vision: string | null
         }
         Insert: {
+          badge_url?: string | null
           calendar_year?: number | null
           created_at?: string
           created_by: string
@@ -377,10 +383,15 @@ export type Database = {
           mission?: string | null
           name: string
           raw_ecosystem_meta_data?: Json
+          slug: string
+          theme_accent?: string | null
+          theme_primary?: string | null
+          theme_supporting?: string
           type?: Database["public"]["Enums"]["ecosystem_type"]
           vision?: string | null
         }
         Update: {
+          badge_url?: string | null
           calendar_year?: number | null
           created_at?: string
           created_by?: string
@@ -390,6 +401,10 @@ export type Database = {
           mission?: string | null
           name?: string
           raw_ecosystem_meta_data?: Json
+          slug?: string
+          theme_accent?: string | null
+          theme_primary?: string | null
+          theme_supporting?: string
           type?: Database["public"]["Enums"]["ecosystem_type"]
           vision?: string | null
         }
@@ -473,6 +488,7 @@ export type Database = {
           created_at: string
           created_by: string
           expires_at: string | null
+          grade_id: string | null
           id: string
           max_uses: number | null
           role: Database["public"]["Enums"]["user_space_role"]
@@ -484,6 +500,7 @@ export type Database = {
           created_at?: string
           created_by: string
           expires_at?: string | null
+          grade_id?: string | null
           id?: string
           max_uses?: number | null
           role?: Database["public"]["Enums"]["user_space_role"]
@@ -495,6 +512,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           expires_at?: string | null
+          grade_id?: string | null
           id?: string
           max_uses?: number | null
           role?: Database["public"]["Enums"]["user_space_role"]
@@ -507,6 +525,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitation_codes_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "grades"
             referencedColumns: ["id"]
           },
           {
@@ -1378,6 +1403,8 @@ export type Database = {
           code_valid: boolean
           ecosystem_name: string
           expires_at: string
+          grade_id: string
+          grade_name: string
           max_uses: number
           role: string
           space_id: string

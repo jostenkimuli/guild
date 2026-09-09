@@ -15,6 +15,7 @@
 --   ecoadmin    ecosystem admin  (owns A Sample School Ecosystem)
 --   spaceadmin  space admin      (owns Primary Mathematics Space)
 --   learner     member           (joined via an invitation code)
+--   testteacher teacher          (teacher in Primary Mathematics Space)
 -- ------------------------------------------------------------
 
 insert into auth.users (
@@ -160,6 +161,30 @@ values (
   now(),
   false,
   false
+),
+(
+  '00000000-0000-0000-0000-000000000000',
+  '66666666-6666-6666-6666-666666666666',
+  'authenticated',
+  'authenticated',
+  'testteacher@example.com',
+  crypt('testpass123', gen_salt('bf')),
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '',
+  null,
+  '',
+  '',
+  '',
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"testteacher","full_name":"Test Teacher","role":"member","status":"approved","must_change_password":false}',
+  now(),
+  now(),
+  false,
+  false
 )
 on conflict (id) do nothing;
 
@@ -169,13 +194,15 @@ on conflict (id) do nothing;
 -- ecosystem (owned by the ecosystem admin) with school metadata
 -- ------------------------------------------------------------
 
-insert into public.ecosystems (name, vision, mission, description, type, raw_ecosystem_meta_data, created_by)
+insert into public.ecosystems (name, slug, vision, mission, description, type, is_private, raw_ecosystem_meta_data, created_by)
 select
   'A Sample School Ecosystem',
+  'a-sample-school',
   'A school where every learner builds real skills for a changing world.',
   'Bring curriculum, projects and community together in one place.',
   'A demo school ecosystem used to showcase the platform.',
   'primary_school',
+  false,
   '{
     "director_name": "Jane Director",
     "director_contact": "+254 700 000 000",
@@ -224,6 +251,12 @@ on conflict (space_id, user_id) do nothing;
 
 insert into public.space_memberships (space_id, user_id, role)
 select s.id, '22222222-2222-2222-2222-222222222222', 'learner'
+from public.spaces as s
+where s.slug = 'primary-mathematics'
+on conflict (space_id, user_id) do nothing;
+
+insert into public.space_memberships (space_id, user_id, role)
+select s.id, '66666666-6666-6666-6666-666666666666', 'teacher'
 from public.spaces as s
 where s.slug = 'primary-mathematics'
 on conflict (space_id, user_id) do nothing;
@@ -528,7 +561,7 @@ where c.name = 'Primary Mathematics' and tp.name = 'Angles and Shapes'
 insert into public.lessons (topic_id, title, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
 select tp.id, 'Fractions to decimals and percentages',
   45, 'self_paced', true, now(),
-  (select id from public.profiles where display_name = 'Demo User' limit 1)
+  (select id from public.profiles where display_name = 'Test Teacher' limit 1)
 from public.topics as tp
 join public.units as u on u.id = tp.unit_id
 join public.terms as t on t.id = u.term_id
@@ -540,7 +573,7 @@ where c.name = 'Primary Mathematics' and tp.name = 'Fractions, Decimals and Perc
 insert into public.lessons (topic_id, title, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
 select tp.id, 'Simplifying expressions',
   45, 'self_paced', true, now(),
-  (select id from public.profiles where display_name = 'Demo User' limit 1)
+  (select id from public.profiles where display_name = 'Test Teacher' limit 1)
 from public.topics as tp
 join public.units as u on u.id = tp.unit_id
 join public.terms as t on t.id = u.term_id
@@ -552,7 +585,7 @@ where c.name = 'Primary Mathematics' and tp.name = 'Algebraic Expressions'
 insert into public.lessons (topic_id, title, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
 select tp.id, 'Angles in triangles',
   40, 'self_paced', true, now(),
-  (select id from public.profiles where display_name = 'Demo User' limit 1)
+  (select id from public.profiles where display_name = 'Test Teacher' limit 1)
 from public.topics as tp
 join public.units as u on u.id = tp.unit_id
 join public.terms as t on t.id = u.term_id
@@ -564,7 +597,7 @@ where c.name = 'Primary Mathematics' and tp.name = 'Angles and Shapes'
 insert into public.lessons (topic_id, title, estimated_duration_minutes, delivery_type, is_published, published_at, teacher_id)
 select tp.id, 'Drawing bar charts',
   45, 'self_paced', true, now(),
-  (select id from public.profiles where display_name = 'Demo User' limit 1)
+  (select id from public.profiles where display_name = 'Test Teacher' limit 1)
 from public.topics as tp
 join public.units as u on u.id = tp.unit_id
 join public.terms as t on t.id = u.term_id
@@ -975,7 +1008,7 @@ select c.id,
   'Office hours: Tuesdays and Thursdays 3-4pm. Contact: demo@theguild.dev',
   'Tuesdays and Thursdays 3-4pm',
   'Bring all materials and homework to every class.',
-  (select id from public.profiles where display_name = 'Demo User' limit 1)
+  (select id from public.profiles where display_name = 'Test Teacher' limit 1)
 from public.curricula as c
 where c.name = 'Primary Mathematics'
   and not exists (select 1 from public.syllabi where curriculum_id = c.id);

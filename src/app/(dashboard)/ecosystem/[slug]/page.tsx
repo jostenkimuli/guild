@@ -5,14 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { ecosystemTypeLabel } from "@/lib/ecosystems";
+import { ecosystemTypeLabel, isSchoolType } from "@/lib/ecosystems";
+import { SchoolDashboard } from "@/components/ecosystem/school-dashboard";
 
 export default async function EcosystemDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
 
   const supabase = await createClient();
   const {
@@ -22,11 +23,17 @@ export default async function EcosystemDetailPage({
 
   const { data: ecosystem } = await supabase
     .from("ecosystems")
-    .select("id, name, type, vision, mission, description")
-    .eq("id", id)
+    .select(
+      "id, slug, name, type, vision, mission, description, badge_url, theme_primary, theme_supporting, theme_accent",
+    )
+    .eq("slug", slug)
     .maybeSingle();
 
   if (!ecosystem) redirect("/ecosystem");
+
+  if (isSchoolType(ecosystem.type)) {
+    return <SchoolDashboard ecosystem={ecosystem} />;
+  }
 
   const { count: spaceCount } = await supabase
     .from("spaces")
@@ -61,7 +68,7 @@ export default async function EcosystemDetailPage({
           <CardContent>
             <p className="text-2xl font-bold">{spaceCount ?? 0}</p>
             <Button asChild variant="ghost" size="sm" className="mt-2 px-0">
-              <Link href={`/ecosystem/${ecosystem.id}/spaces`}>Manage spaces</Link>
+              <Link href={`/ecosystem/${ecosystem.slug}/spaces`}>Manage spaces</Link>
             </Button>
           </CardContent>
         </Card>
@@ -73,7 +80,7 @@ export default async function EcosystemDetailPage({
           </CardHeader>
           <CardContent>
             <Button asChild variant="ghost" size="sm" className="px-0">
-              <Link href={`/ecosystem/${ecosystem.id}/staff`}>Manage staff</Link>
+              <Link href={`/ecosystem/${ecosystem.slug}/staff`}>Manage staff</Link>
             </Button>
           </CardContent>
         </Card>

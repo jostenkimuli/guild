@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Routes &amp; Pages &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="routes">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>Routes &amp; Pages</h1>
+      <p class="lead">
+        Every route in the app, its render model, and how the layout guards nest. Cards
+        marked <span class="pill server">server</span> render as Server Components;
+        <span class="pill client">client</span> pages opt into interactivity.
+      </p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#public">Public routes</a>
+        <a href="#dashboard">Dashboard group (protected)</a>
+        <a href="#layers">Layout hierarchy &amp; guards</a>
+        <a href="#spaces">Space &amp; lesson routes</a>
+        <a href="#route-restructure">Route restructure notes</a>
+      </div>
+
+      <h2 id="public">Public routes</h2>
+      <table>
+        <thead><tr><th>Route</th><th>File</th><th></th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/</code></td><td><code>app/page.tsx</code></td><td><span class="pill server">server</span></td><td>Landing page; redirects signed-in users to their role-appropriate dashboard.</td></tr>
+          <tr><td><code>/login</code></td><td><code>app/login/page.tsx</code></td><td><span class="pill client">client</span></td><td>Sign-in / sign-up form with invitation-code enrollment.</td></tr>
+          <tr><td><code>/setup-password</code></td><td><code>app/setup-password/page.tsx</code></td><td><span class="pill client">client</span></td><td>Forced first-login password set for admin-created accounts.</td></tr>
+          <tr><td><code>/s/[slug]</code></td><td><code>app/s/[slug]/page.tsx</code></td><td><span class="pill server">server</span></td><td>Public ecosystem profile: name, vision, mission, spaces list.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="dashboard">Dashboard group (protected)</h2>
+      <p>
+        Everything under the <code>(dashboard)</code> route group sits behind the auth gate
+        in <code>(dashboard)/layout.tsx</code>, which builds a role-aware sidebar (see
+        <code>DashboardSidebar</code>).
+      </p>
+      <h3>Admin consoles</h3>
+      <table>
+        <thead><tr><th>Route</th><th>File</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/admin</code></td><td>admin/page.tsx</td><td>Super &amp; program admin overview: pending program admins, pending + approved ecosystem admins.</td></tr>
+          <tr><td><code>/admin/program-admins</code></td><td>admin/program-admins/page.tsx</td><td>Super admin: manage program admin accounts.</td></tr>
+          <tr><td><code>/admin/ecosystem-admins</code></td><td>admin/ecosystem-admins/page.tsx</td><td>Admins: approve pending ecosystem admin accounts, delegation controls.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Ecosystem routes</h3>
+      <table>
+        <thead><tr><th>Route</th><th>File</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/ecosystem</code></td><td>ecosystem/page.tsx</td><td>Ecosystem admin: create ecosystem form (or redirect to their existing one).</td></tr>
+          <tr><td><code>/ecosystem/[slug]</code></td><td>ecosystem/[slug]/page.tsx</td><td>Ecosystem dashboard: overview, space count, staff link.</td></tr>
+          <tr><td><code>/ecosystem/[slug]/staff</code></td><td>staff/page.tsx</td><td>Manage space admins for the ecosystem.</td></tr>
+          <tr><td><code>/ecosystem/[slug]/members</code></td><td>members/page.tsx</td><td>All space members across the ecosystem.</td></tr>
+          <tr><td><code>/ecosystem/[slug]/spaces</code></td><td>spaces/page.tsx</td><td>All spaces grouped by type, with creation controls.</td></tr>
+          <tr><td><code>/ecosystem/[slug]/students</code></td><td>students/page.tsx</td><td>Learners across ecosystem spaces, with enrollment actions.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="layers">Layout hierarchy &amp; guards</h2>
+      <table>
+        <thead><tr><th>Layout</th><th>Gates</th></tr></thead>
+        <tbody>
+          <tr><td><code>app/layout.tsx</code></td><td>Nothing &mdash; fonts + global CSS.</td></tr>
+          <tr><td><code>app/(dashboard)/layout.tsx</code></td><td>Authentication required; renders the role-aware sidebar.</td></tr>
+          <tr><td><code>app/(dashboard)/admin/layout.tsx</code></td><td><code>super_admin</code> or <code>program_admin</code> (approved).</td></tr>
+          <tr><td><code>app/(dashboard)/ecosystem/layout.tsx</code></td><td><code>ecosystem_admin</code> (approved); shows an &ldquo;awaiting approval&rdquo; state until then.</td></tr>
+          <tr><td><code>app/(dashboard)/ecosystem/[slug]/layout.tsx</code></td><td>Ecosystem exists and <code>created_by</code> matches the user.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="spaces">Space &amp; lesson routes</h2>
+      <table>
+        <thead><tr><th>Route</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/spaces/[slug]</code></td><td>Space home: curriculum tree, syllabi, members, pending edits, space edit request.</td></tr>
+          <tr><td><code>/spaces/[slug]/members</code></td><td>Space admin: all members with roles.</td></tr>
+          <tr><td><code>/spaces/[slug]/teachers</code></td><td>Space admin: teachers list + teacher invitation code generation.</td></tr>
+          <tr><td><code>/spaces/[slug]/syllabus/new</code></td><td>Staff: create/edit the syllabus for the latest curriculum.</td></tr>
+          <tr><td><code>/spaces/[slug]/lessons/[id]</code></td><td>Lesson view with pages, activities, assessments and objective progress.</td></tr>
+          <tr><td><code>/spaces/[slug]/lessons/new</code></td><td>Staff: publish a new lesson into a topic.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <div class="co-title">Subdomain mirror</div>
+        The proxy rewrites ecosystem subdomains to these routes &mdash; e.g.
+        <code>a-sample-school.localhost:3000</code> &rarr; <code>/ecosystem/a-sample-school</code>.
+        See <a href="architecture.html#subdomains">Architecture &rarr; Subdomains</a>.
+      </div>
+
+      <h2 id="route-restructure">Route restructure notes</h2>
+      <p>
+        <code>docs/ROUTE_RESTRUCTURE.md</code> records the move away from the old
+        <code>/console/</code> routing. Decisions that still guide the app:
+      </p>
+      <ul>
+        <li>Spaces keep <strong>bookmarkable</strong> URLs at <code>/spaces/[slug]</code>.</li>
+        <li>Ecosystem routes use <code>[slug]</code>, not <code>[id]</code>, for readable, stable URLs.</li>
+        <li>Cross-cutting admin lives at <code>/admin</code>, separate from ecosystem-bound areas.</li>
+      </ul>
+
+      <div class="pager">
+        <a href="domain-model.html"><span class="pkt">Previous</span>&larr; Domain Model</a>
+        <a class="next" href="actions.html"><span class="pkt">Next</span>Server Actions &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../docs/ROUTE_RESTRUCTURE.md">Route restructure</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

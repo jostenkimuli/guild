@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auth, Roles &amp; RLS &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="security">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>Auth, Roles &amp; RLS</h1>
+      <p class="lead">
+        Authentication via Supabase Auth, authorization via platform roles + per-space roles,
+        and row-level security as the enforcement boundary.
+      </p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#authentication">Authentication flow</a>
+        <a href="#roles">Platform &amp; per-space roles</a>
+        <a href="#approval-states">Approval states</a>
+        <a href="#rls-model">The RLS model</a>
+        <a href="#delegation">Delegated approval</a>
+        <a href="#invitation-codes">Invitation codes</a>
+        <a href="#locked-columns">Locked profile columns</a>
+        <a href="#checklist">Security checklist</a>
+      </div>
+
+      <h2 id="authentication">Authentication flow</h2>
+      <ul>
+        <li>Email/password sign-in and sign-up through the <code>/login</code> client form.</li>
+        <li>Session cookies are kept fresh by the <strong>proxy</strong> on every request (see <a href="architecture.html#proxy">Architecture</a>).</li>
+        <li>Browser components use <code>@/lib/supabase/client</code>; server pages/actions use <code>@/lib/supabase/server</code>.</li>
+        <li>Admin-created accounts sign in with a temporary password and are forced to
+          <code>/setup-password</code> (<code>must_change_password</code>) before use.</li>
+        <li>New public signups trigger <code>on_auth_user_created</code> &rarr; a <code>profiles</code> row.</li>
+      </ul>
+
+      <h2 id="roles">Platform &amp; per-space roles</h2>
+      <table>
+        <thead><tr><th>Kind</th><th>Roles</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Platform (<code>profiles.role</code>)</td><td><code>super_admin</code> &middot; <code>program_admin</code> &middot; <code>ecosystem_admin</code> &middot; <code>space_admin</code> &middot; <code>member</code></td><td>Drives navigation and console access; also governs the onboarding chain.</td></tr>
+          <tr><td>Per-space (<code>space_memberships.role</code>)</td><td><code>admin</code> &middot; <code>teacher</code> &middot; <code>learner</code> (with <code>mentor</code>/<code>collaborator</code> planned)</td><td>A user can be a teacher in one Space and learner in another &mdash; <strong>never global</strong>.</td></tr>
+          <tr><td>Domain</td><td>Teacher &middot; Learner &middot; Mentor &middot; Industry Partner</td><td>The conceptual-model persona layer; roadmap refines what opens per role.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="approval-states">Approval states</h2>
+      <ul>
+        <li><code>pending</code> &mdash; created but not yet approved; consoles show an &ldquo;awaiting approval&rdquo; state.</li>
+        <li><code>approved</code> &mdash; cleared to act at the platform level.</li>
+        <li>Ecosystem admins created <strong>by the super admin</strong> are auto-approved (migration <code>20260829000001</code>); those created by a program admin start <code>pending</code>.</li>
+      </ul>
+
+      <h2 id="rls-model">The RLS model</h2>
+      <p>RLS is the security boundary. The pattern every table follows:</p>
+      <pre><code>-- every row on the platform resolves to a Space ...
+CREATE POLICY "..._members_read" ON ... FOR SELECT USING (
+  space_id IN (SELECT space_id FROM space_memberships WHERE user_id = auth.uid())
+);
+CREATE POLICY "..._staff_write" ON ... FOR ALL USING (
+  EXISTS (SELECT 1 FROM space_memberships
+          WHERE space_id = ... AND user_id = auth.uid()
+          AND role IN ('admin', 'teacher'))
+);
+-- ... scoped through the Space's membership model</code></pre>
+      <ul>
+        <li><strong>Members read</strong>; <strong>space staff (admin/teacher) write</strong> &mdash; scoped through the curriculum&rsquo;s Space.</li>
+        <li>Self-joins (learners joining spaces) are limited to <code>learner</code>/<code>collaborator</code> roles.</li>
+        <li>Teachers/mentors/admins are assigned only by space staff.</li>
+        <li>Ecosystem/space ownership is enforced through <code>created_by</code> and the <code>ecosystem_staff</code> link.</li>
+        <li>SECURITY DEFINER helpers resolve any curriculum row to its space so deep rows (topics, lessons, activities) inherit the same scoping.</li>
+        <li>Ecosystem visibility policies evaluate row-native columns (PG17-safe for
+          <code>INSERT/UPDATE&hellip;RETURNING</code>) &mdash; migration <code>20260902000001</code>.</li>
+      </ul>
+
+      <h2 id="delegation">Delegated approval</h2>
+      <p>
+        Ecosystem-admin approvals always start with the super admin. The super admin can
+        either approve directly or <strong>delegate</strong> that authority to a program
+        admin by setting <code>profiles.can_approve_ecosystem_admins = true</code>
+        (<code>setProgramAdminDelegation</code>). A delegated program admin then sees and
+        approves pending ecosystem admins from the program console.
+      </p>
+
+      <h2 id="invitation-codes">Invitation codes</h2>
+      <div class="card">
+        <ol>
+          <li>Space admin generates a code with a role (<code>learner</code>, <code>teacher</code>,&#8230;), optional maximum uses, expiry, and optional grade link.</li>
+          <li>The public <code>/login</code> sign-up flow collects the code (<code>invitation_code_info</code> RPC validates it).</li>
+          <li>Signup redeems the code and adds the subscriber as a <code>space_memberships</code> row with the code&rsquo;s role.</li>
+        </ol>
+      </div>
+      <p>Seeded example: <code>MATHLAB</code> &rarr; learner in Primary Mathematics Space (max 50 uses).</p>
+
+      <h2 id="locked-columns">Locked profile columns</h2>
+      <p>
+        A trigger locks <code>profiles.role</code>, <code>status</code> and
+        <code>can_approve_ecosystem_admins</code> so ordinary users can&rsquo;t escalate
+        themselves. The super admin may change any of them; a delegated program admin may
+        only touch ecosystem-admin <code>status</code>.
+      </p>
+
+      <h2 id="checklist">Security checklist</h2>
+      <div class="card">
+        <ul>
+          <li>Every new table: RLS enabled + explicit <code>GRANT</code>s + row-level policies.</li>
+          <li>Verified with positive <em>and</em> negative tests (a member can read; a non-member cannot; a learner cannot write).</li>
+          <li>Service-role key is server-only and never in client bundles.</li>
+          <li>No secrets in code or repository; <code>.env.local</code> git-ignored.</li>
+          <li>Regenerate + commit <code>database.types.ts</code> after schema work.</li>
+        </ul>
+      </div>
+
+      <div class="pager">
+        <a href="database.html"><span class="pkt">Previous</span>&larr; Database &amp; Migrations</a>
+        <a class="next" href="engineering.html"><span class="pkt">Next</span>Engineering Process &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../supabase/migrations">Migrations directory</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

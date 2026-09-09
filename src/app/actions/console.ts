@@ -303,7 +303,7 @@ export async function createEcosystem(
   const type: Database["public"]["Enums"]["ecosystem_type"] =
     profile.ecosystem_type ?? "primary_school";
 
-  const meta = {
+  const meta: Record<string, string | string[]> = {
     director_name: String(formData.get("director_name") ?? "").trim(),
     director_contact: String(formData.get("director_contact") ?? "").trim(),
     director_email: String(formData.get("director_email") ?? "").trim(),
@@ -311,25 +311,53 @@ export async function createEcosystem(
     headteacher_contact: String(formData.get("headteacher_contact") ?? "").trim(),
     headteacher_email: String(formData.get("headteacher_email") ?? "").trim(),
     school_location: String(formData.get("school_location") ?? "").trim(),
+    country: String(formData.get("country") ?? "").trim(),
+    region: String(formData.get("region") ?? "").trim(),
+    district: String(formData.get("district") ?? "").trim(),
+    sub_county: String(formData.get("sub_county") ?? "").trim(),
+    parish: String(formData.get("parish") ?? "").trim(),
   };
 
   for (const [field, value] of Object.entries(meta)) {
-    if (value.length > 120) {
+    if (typeof value === "string" && value.length > 120) {
       return { success: false, error: `${field} must be 120 characters or fewer.` };
     }
   }
-  if (meta.director_email && !EMAIL_RE.test(meta.director_email)) {
+
+  const grades = formData
+    .getAll("grades")
+    .map((g) => String(g).trim())
+    .filter((g) => g.length > 0 && g.length <= 60);
+  if (grades.length > 0) meta.grades = grades;
+  const directorEmail = String(meta.director_email ?? "").trim();
+  if (directorEmail && !EMAIL_RE.test(directorEmail)) {
     return { success: false, error: "Director email is not valid." };
   }
-  if (meta.headteacher_email && !EMAIL_RE.test(meta.headteacher_email)) {
+  const headteacherEmail = String(meta.headteacher_email ?? "").trim();
+  if (headteacherEmail && !EMAIL_RE.test(headteacherEmail)) {
     return { success: false, error: "Headteacher email is not valid." };
   }
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("ecosystems")
+    .select("slug")
+    .like("slug", `${slugify(name)}%`)
+    .order("slug")
+    .then((r) => r);
+
+  const base = slugify(name) || "ecosystem";
+  const taken = new Set((existing ?? []).map((e) => e.slug));
+  let slug = base;
+  for (let i = 2; i < 1_000 && taken.has(slug); i++) {
+    slug = `${base}-${i}`;
+  }
+
   const { data, error } = await supabase
     .from("ecosystems")
     .insert({
       name,
+      slug,
       type,
       vision: String(formData.get("vision") ?? "").trim() || null,
       mission: String(formData.get("mission") ?? "").trim() || null,
@@ -337,11 +365,11 @@ export async function createEcosystem(
       raw_ecosystem_meta_data: meta,
       created_by: profile.id,
     })
-    .select("id")
+    .select("id, slug")
     .single();
 
   if (error) return { success: false, error: error.message };
-  return { success: true, ecosystemId: data.id };
+  return { success: true, ecosystemId: data.id, code: data.slug };
 }
 
 // ------------------------------------------------------------
@@ -459,6 +487,9 @@ export async function createInvitationCode(
 
   const code = generateCode();
 
+  const gradeIdRaw = String(formData.get("grade_id") ?? "").trim();
+  const gradeId = gradeIdRaw || null;
+
   const supabase = await createClient();
   const { error } = await supabase.from("invitation_codes").insert({
     space_id: spaceId,
@@ -467,6 +498,7 @@ export async function createInvitationCode(
     created_by: profile.id,
     max_uses: maxUses,
     expires_at: expiresAt,
+    grade_id: gradeId,
   });
 
   if (error) return { success: false, error: error.message };

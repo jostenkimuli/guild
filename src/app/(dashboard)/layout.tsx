@@ -8,9 +8,15 @@ import {
   type SidebarHeader,
 } from "@/components/dashboard-sidebar";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { signOut } from "@/app/actions/auth";
+import { EcosystemThemeProvider } from "@/components/ecosystem-theme-provider";
 import { createClient } from "@/lib/supabase/server";
-import { ecosystemTypeLabel } from "@/lib/ecosystems";
+import { ecosystemTypeLabel, isSchoolType } from "@/lib/ecosystems";
+import {
+  themeConfigFromRow,
+  type EcosystemThemeConfig,
+} from "@/lib/theme";
 
 export default async function DashboardRootLayout({
   children,
@@ -25,14 +31,22 @@ export default async function DashboardRootLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, status, must_change_password")
+    .select("role, status, must_change_password, display_name")
     .eq("id", user.id)
     .single();
   if (profile?.must_change_password) redirect("/setup-password");
 
   const role = profile?.role;
+  const initials = (profile?.display_name || user.email || "?")
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
   const groups: DashboardNavGroup[] = [];
   let header: SidebarHeader | undefined;
+  let themeConfig: EcosystemThemeConfig | null = null;
 
   if (
     (role === "super_admin" || role === "program_admin") &&
@@ -47,19 +61,24 @@ export default async function DashboardRootLayout({
   if (role === "ecosystem_admin" && profile?.status === "approved") {
     const { data: ecosystem } = await supabase
       .from("ecosystems")
-      .select("id, name, type, vision, calendar_year")
+      .select(
+        "id, slug, name, type, vision, calendar_year, badge_url, theme_primary, theme_supporting, theme_accent",
+      )
       .eq("created_by", user.id)
       .maybeSingle();
     if (ecosystem) {
+      const school = isSchoolType(ecosystem.type);
+      if (school) themeConfig = themeConfigFromRow(ecosystem);
       header = {
         title: ecosystem.name,
         subtitle: ecosystem.vision ?? undefined,
         badge: ecosystemTypeLabel(ecosystem.type),
         calendarYear: ecosystem.calendar_year,
+        crestUrl: school ? ecosystem.badge_url : undefined,
       };
       groups.push({
         label: "Overview",
-        items: [{ href: `/ecosystem/${ecosystem.id}`, label: "Dashboard" }],
+        items: [{ href: `/ecosystem/${ecosystem.slug}`, label: "Dashboard" }],
       });
 
       const { data: spaces } = await supabase
@@ -73,14 +92,23 @@ export default async function DashboardRootLayout({
         label: space.name,
       }));
       if (spaceItems.length > 0) {
-        groups.push({ label: "Departments", items: spaceItems });
+        groups.push({
+          label: school ? "Classes" : "Departments",
+          items: spaceItems,
+        });
       }
 
       groups.push({
-        label: "Administration",
+        label: school ? "School" : "Administration",
         items: [
-          { href: `/ecosystem/${ecosystem.id}/staff`, label: "Staff" },
-          { href: `/ecosystem/${ecosystem.id}/members`, label: "Members" },
+          ...(school
+            ? [{ href: `/ecosystem/${ecosystem.slug}/students`, label: "Students" }]
+            : []),
+          { href: `/ecosystem/${ecosystem.slug}/staff`, label: school ? "Teachers" : "Staff" },
+          { href: `/ecosystem/${ecosystem.slug}/members`, label: "Members" },
+          ...(school
+            ? [{ href: `/ecosystem/${ecosystem.slug}/settings`, label: "Settings" }]
+            : []),
         ],
       });
     } else {
@@ -128,10 +156,16 @@ export default async function DashboardRootLayout({
 
       groups.push({
         label: "Administration",
-        items: spaces.map((space) => ({
-          href: `/spaces/${space.slug ?? space.id}/members`,
-          label: "Members",
-        })),
+        items: [
+          ...spaces.map((space) => ({
+            href: `/spaces/${space.slug ?? space.id}/members`,
+            label: "Members",
+          })),
+          ...spaces.map((space) => ({
+            href: `/spaces/${space.slug ?? space.id}/teachers`,
+            label: "Teachers",
+          })),
+        ],
       });
     }
   }
@@ -155,7 +189,8 @@ export default async function DashboardRootLayout({
   const mobileItems = groups.flatMap((group) => group.items);
 
   return (
-    <div className="flex min-h-dvh">
+    <EcosystemThemeProvider config={themeConfig}>
+      <div className="flex min-h-dvh">
       <DashboardSidebar header={header} groups={groups} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b bg-background/95 backdrop-blur">
@@ -164,11 +199,21 @@ export default async function DashboardRootLayout({
               <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
                 TheGuild
               </h1>
-              <form action={signOut} className="sm:hidden">
-                <Button type="submit" variant="ghost" size="sm">
-                  Sign out
-                </Button>
-              </form>
+              <div className="flex items-center gap-3">
+                <div className="group/avatar-chip relative">
+                  <Avatar className="cursor-default">
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="pointer-events-none absolute top-full right-0 z-50 mt-2 rounded-md border bg-popover px-3 py-1.5 text-xs whitespace-nowrap text-popover-foreground opacity-0 shadow-md transition-opacity group-hover/avatar-chip:opacity-100">
+                    {user.email}
+                  </div>
+                </div>
+                <form action={signOut} className="sm:hidden">
+                  <Button type="submit" variant="ghost" size="sm">
+                    Sign out
+                  </Button>
+                </form>
+              </div>
             </div>
             <nav className="mt-3 flex gap-2 overflow-x-auto pb-3 sm:hidden">
               {mobileItems.map((item) => (
@@ -187,6 +232,7 @@ export default async function DashboardRootLayout({
           {children}
         </main>
       </div>
-    </div>
+      </div>
+    </EcosystemThemeProvider>
   );
 }

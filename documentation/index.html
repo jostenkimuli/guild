@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TheGuild &mdash; Developer Documentation</title>
+  <meta name="description" content="Developer documentation for TheGuild, an educational ecosystem where large-scale virtual communities solve real-world problems." />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="index" data-title="TheGuild">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="content">
+      <div class="hero">
+        <div>
+          <span class="badge green">Live documentation</span>
+          <span class="badge blue">Sprint 2 shipped</span>
+          <span class="badge gray">Next.js 16 &middot; Supabase</span>
+        </div>
+        <h1>TheGuild</h1>
+        <p class="lead">
+          An educational ecosystem where large-scale virtual communities solve
+          real-world problems. Schools create departments, learners form teams,
+          teams solve challenges into projects, and results roll up across
+          alliances of schools &mdash; guided by mentors, at any scale.
+        </p>
+        <div class="chips">
+          <span class="chip"><span class="dot"></span>Next.js 16 (App Router)</span>
+          <span class="chip"><span class="dot"></span>TypeScript strict</span>
+          <span class="chip"><span class="dot"></span>Tailwind CSS v4</span>
+          <span class="chip"><span class="dot"></span>shadcn/ui</span>
+          <span class="chip"><span class="dot"></span>Supabase (Postgres + RLS)</span>
+        </div>
+      </div>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#what">What is TheGuild?</a>
+        <a href="#domain-at-a-glance">Domain at a glance</a>
+        <a href="#documentation-map">Documentation map</a>
+        <a href="#repository-layout">Repository layout</a>
+        <a href="#quick-start">Quick start</a>
+        <a href="#documentation-conventions">Documentation conventions</a>
+      </div>
+
+      <h2 id="what">What is TheGuild?</h2>
+      <p>
+        TheGuild is an <strong>educational ecosystem platform</strong>: super admins onboard
+        program admins, who onboard ecosystem admins, who create and run
+        <strong>ecosystems</strong> (schools, universities, companies). Inside an ecosystem live
+        <strong>spaces</strong> (departments, innovation hubs, project groups). Spaces ship a
+        full <strong>curriculum</strong> &mdash; grades &rarr; terms &rarr; units &rarr; topics
+        &rarr; lessons &mdash; with syllabi, learning objectives, activities, assessments and
+        shared resources. Learners join spaces via invitation codes and follow published
+        lessons; teachers plan, publish and deliver them.
+      </p>
+      <p>
+        The roadmap adds mentors (Sprint 3), teams (Sprint 4), challenges (Sprint 5),
+        projects (Sprint 6) and cross-ecosystem alliances (Sprints 7&ndash;8). The platform
+        compiles to a production build today and is developed against a local Supabase
+        stack with disciplined migrations, row-level security and typed clients.
+      </p>
+
+      <h2 id="domain-at-a-glance">Domain at a glance</h2>
+      <p>
+        The product is modeled as <strong>Ecosystem &rarr; Space &rarr; (Content / Challenge
+        &rarr; Team &rarr; Project)</strong>, with users holding <em>per-space</em> roles
+        (Teacher / Learner / Mentor / Industry Partner).
+      </p>
+      <div class="grid cols-3">
+        <a class="tile" href="domain-model.html">
+          <div class="tile-title">Entities</div>
+          <div class="tile-desc">Ecosystems, Spaces, curricula, lessons, syllabi &mdash; and the roadmap entities: teams, challenges, projects.</div>
+        </a>
+        <a class="tile" href="security.html">
+          <div class="tile-title">Roles &amp; approvals</div>
+          <div class="tile-desc">super_admin &rarr; program_admin &rarr; ecosystem_admin &rarr; space_admin, with delegation and invitation codes.</div>
+        </a>
+        <a class="tile" href="database.html">
+          <div class="tile-title">Schema</div>
+          <div class="tile-desc">29+ tables across migrations, all with RLS and explicit grants, regenerated TS types.</div>
+        </a>
+        <a class="tile" href="routes.html">
+          <div class="tile-title">Routes</div>
+          <div class="tile-desc">Landing, login, dashboards by role, ecosystem &rarr; space pages, lesson views and publishing.</div>
+        </a>
+        <a class="tile" href="actions.html">
+          <div class="tile-title">Server actions</div>
+          <div class="tile-desc">Onboarding, approvals, ecosystems, spaces, invitations, curricula, syllabi and lesson delivery.</div>
+        </a>
+        <a class="tile" href="architecture.html">
+          <div class="tile-title">Architecture</div>
+          <div class="tile-desc">Server-first rendering, session-refresh proxy, subdomain rewriting, typed Supabase clients.</div>
+        </a>
+      </div>
+
+      <h2 id="documentation-map">Documentation map</h2>
+      <table>
+        <thead>
+          <tr><th style="width:220px">Section</th><th>What it covers</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><a href="getting-started.html">Setup &amp; Prerequisites</a></td><td>Toolchain, environment variables, local Supabase stack, common commands, Windows notes.</td></tr>
+          <tr><td><a href="architecture.html">Architecture</a></td><td>Next.js 16 App Router conventions, server vs. client components, Supabase clients, the proxy, subdomains.</td></tr>
+          <tr><td><a href="domain-model.html">Domain Model</a></td><td>The entity blueprint (Ecosystem &rarr; Space &rarr; Content), the curriculum tree, the approval chain, schema mapping.</td></tr>
+          <tr><td><a href="routes.html">Routes &amp; Pages</a></td><td>Every public route and dashboard segment, layout hierarchy, and the lesson publishing flow.</td></tr>
+          <tr><td><a href="actions.html">Server Actions</a></td><td>All server actions grouped by concern: auth, console/onboarding, curriculum, syllabus.</td></tr>
+          <tr><td><a href="components.html">UI Components</a></td><td>shadcn/ui inventory, console forms and dialogs, space components, the blueprint wizard.</td></tr>
+          <tr><td><a href="database.html">Database &amp; Migrations</a></td><td>Migration history, table catalog, enums, seed data, grants &amp; triggers, regenerating types.</td></tr>
+          <tr><td><a href="security.html">Auth, Roles &amp; RLS</a></td><td>Authentication, per-space roles, approval states, RLS policy model, delegated approval, insurance for schema changes.</td></tr>
+          <tr><td><a href="engineering.html">Engineering Process</a></td><td>Working agreements, Definition of Done, product backlog, sprint map and retro log.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Presenting TheGuild</h3>
+        <p>Conceptual 7-slide deck on how TheGuild closes East Africa&rsquo;s education
+        gap &mdash; <em>&ldquo;Africa has the resources. We build the resourcefulness.&rdquo;</em>
+        Navigate with arrow keys; print to export as PDF.</p>
+        <p><a href="presentation.html" target="_blank" rel="noopener">Open the presentation &rarr;</a></p>
+      </div>
+
+      <h2 id="repository-layout">Repository layout</h2>
+      <pre><code>theguild/
+  src/
+    app/                  # routes: /, /login, /setup-password, /s/[slug],
+                          #   /admin, /ecosystem/*, /spaces/[slug]/lessons/*
+    components/ui/        # shadcn/ui components
+    components/console/   # admin console forms + dialogs
+    components/spaces/    # syllabus + lesson components
+    lib/supabase/         # browser + server clients, generated DB types
+    lib/                  # utils, ecosystems labels, subdomain helpers
+    app/actions/          # server actions (console, lessons, curriculum, syllabus)
+    proxy.ts              # session refresh + subdomain rewriting + auth guard
+  supabase/
+    migrations/           # 31 SQL migrations (schema + RLS + grants)
+    seed.sql              # local dev data (roles, ecosystem, curriculum)
+    config.toml           # local stack config (remapped ports)
+  docs/
+    CONCEPTUAL_MODEL.md   # domain blueprint
+    agile/                # working agreements, DoD, backlog, sprint plan
+  documentation/          # this site (+ presentation.html concept deck)
+</code></pre>
+
+      <h2 id="quick-start">Quick start</h2>
+      <div class="code-title">Bootstrap the full local environment</div>
+      <pre><code>npm install                 # install dependencies
+npm run db:start            # start local Supabase (Docker)
+copy .env.example .env.local # then fill in the keys from `supabase status`
+npm run db:reset            # apply migrations + seed
+npm run dev                 # dev server on http://localhost:3000</code></pre>
+      <div class="callout info">
+        <div class="co-title">Windows note</div>
+        Use <code>npm.cmd</code> and <code>supabase.cmd</code> instead of the bare
+        commands &mdash; this host blocks the <code>*.ps1</code> shims. Local Supabase ports
+        are remapped (API <code>55421</code>, DB <code>55422</code>, Studio
+        <code>55423</code>); see <a href="getting-started.html">Setup &amp; Prerequisites</a>.
+      </div>
+
+      <div class="pager">
+        <a class="next" href="getting-started.html"><span class="pkt">Next</span>Setup &amp; Prerequisites &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../README.md">Repository README</a>
+        <a href="../docs/CONCEPTUAL_MODEL.md">Conceptual model</a>
+        <a href="../docs/agile/SPRINT_PLAN.md">Sprint plan</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

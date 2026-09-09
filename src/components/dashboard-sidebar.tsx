@@ -18,6 +18,7 @@ export type SidebarHeader = {
   subtitle?: string;
   badge?: string;
   calendarYear?: number | null;
+  crestUrl?: string | null;
 };
 
 export function DashboardSidebar({
@@ -34,6 +35,15 @@ export function DashboardSidebar({
       {header ? (
         <div className="border-b px-4 py-4">
           <div className="flex items-center gap-2">
+            {header.crestUrl ? (
+              <div className="size-9 shrink-0 overflow-hidden rounded-full border bg-surface-container-lowest">
+                <img
+                  src={header.crestUrl}
+                  alt={`${header.title} crest`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : null}
             {header.badge ? (
               <Badge variant="secondary" className="shrink-0 text-xs">
                 {header.badge}

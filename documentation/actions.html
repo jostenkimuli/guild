@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Actions &mdash; TheGuild Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-page="actions">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="content">
+      <h1>Server Actions</h1>
+      <p class="lead">
+        All data writes flow through server actions in <code>src/app/actions/</code>. They
+        run with full server privileges, validate input, and call Supabase on behalf of the
+        signed-in user with the service-role / anon key as appropriate.
+      </p>
+
+      <div class="toc">
+        <div class="toc-title">On this page</div>
+        <a href="#pattern">The action pattern</a>
+        <a href="#auth">auth.ts &mdash; session</a>
+        <a href="#console">console.ts &mdash; onboarding &amp; governance</a>
+        <a href="#curriculum">curriculum.ts &mdash; blueprint wizard</a>
+        <a href="#syllabus">syllabus.ts &mdash; teaching plan</a>
+        <a href="#lessons">lessons.ts &mdash; lesson delivery cycle</a>
+      </div>
+
+      <h2 id="pattern">The action pattern</h2>
+      <p>Each action module follows the same shape:</p>
+      <pre><code>"use server";
+
+export async function someAction(...) {
+  const supabase = await createClient();   // server client (awaits cookies())
+  // 1. read the current profile                        → getProfile()
+  // 2. authorize (role / ownership checks)
+  // 3. validate inputs
+  // 4. mutate via supabase (with .select().single() etc.)
+  // 5. revalidate cache + redirect / return result
+}</code></pre>
+      <p>
+        Client forms call these via the form <code>action</code> attribute (progressive
+        enhancement) and surface <code>error</code>/<code>success</code> through
+        <code>useActionState</code> in components like <code>&lt;Feedback /&gt;</code>.
+      </p>
+
+      <h2 id="auth">auth.ts &mdash; session</h2>
+      <table>
+        <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>signOut()</code></td><td>Signs the user out via Supabase and redirects to <code>/login</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="console">console.ts &mdash; onboarding &amp; governance</h2>
+      <p>The largest action file (600+ lines). Handles the whole admin onboarding chain and space governance.</p>
+      <table>
+        <thead><tr><th>Function</th><th>Who</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>createProgramAdmin</code></td><td>Super admin</td><td>Create a program admin account (starts <code>pending</code>).</td></tr>
+          <tr><td><code>approveProgramAdmin</code></td><td>Super admin</td><td>Approve a pending program admin.</td></tr>
+          <tr><td><code>setProgramAdminDelegation</code></td><td>Super admin</td><td>Grant / revoke <code>can_approve_ecosystem_admins</code> on a program admin.</td></tr>
+          <tr><td><code>createEcosystemAdmin</code></td><td>Program / super admin</td><td>Create an ecosystem-admin account (pending; super-admin-created ones are auto-approved via migration).</td></tr>
+          <tr><td><code>approveEcosystemAdmin</code></td><td>Super admin or delegated program admin</td><td>Approve a pending ecosystem admin.</td></tr>
+          <tr><td><code>createEcosystem</code></td><td>Ecosystem admin</td><td>Create their ecosystem, including school metadata (vision, mission, director, headteacher, location).</td></tr>
+          <tr><td><code>createSpaceAdmin</code></td><td>Ecosystem admin</td><td>Create a space-admin account (auto-approved).</td></tr>
+          <tr><td><code>createSpace</code></td><td>Space admin</td><td>Create a space (department / innovation_hub / project_group).</td></tr>
+          <tr><td><code>createInvitationCode</code></td><td>Space admin</td><td>Generate an invitation code with role, optional grade link, max uses and expiry.</td></tr>
+          <tr><td><code>editSpace</code></td><td>Space admin</td><td>Submit a space edit <em>request</em> (pending ecosystem-admin approval).</td></tr>
+          <tr><td><code>approveSpaceEdit</code></td><td>Ecosystem admin</td><td>Approve a pending space edit request &mdash; applies the changes.</td></tr>
+          <tr><td><code>rejectSpaceEdit</code></td><td>Ecosystem admin</td><td>Reject a pending space edit request.</td></tr>
+        </tbody>
+      </table>
+      <p>Internal helpers: <code>getProfile()</code>, <code>isApprovedEcosystemAdminOfSpace()</code>,
+        <code>validateAccountFields()</code>, <code>slugify()</code>, <code>generateCode()</code>.</p>
+
+      <div class="callout info">
+        <div class="co-title">Space edit workflow</div>
+        Space edits are intentionally two-phase: the space admin proposes
+        (<code>space_edits</code> record, status <code>pending</code>), the ecosystem admin
+        approves or rejects. Nothing mutates <code>spaces</code> until approval.
+      </div>
+
+      <h2 id="curriculum">curriculum.ts &mdash; blueprint wizard</h2>
+      <table>
+        <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>saveCurriculumData</code></td><td>Blueprint wizard action: creates or updates a whole curriculum tree (goals, grades, terms, units, topics) and optionally publishes it.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Called by the 6-step <code>CurriculumDialog</code> wizard (details &rarr; goals &rarr;
+        grades &rarr; terms &rarr; units &rarr; topics). Re-running it upserts a shared
+        structure across the selected grades.
+      </p>
+
+      <h2 id="syllabus">syllabus.ts &mdash; teaching plan</h2>
+      <table>
+        <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>createSyllabus</code></td><td>Staff (admin/teacher) or ecosystem admin: create or update a syllabus (upsert on <code>curriculum_id</code>) with grading policy, required materials, office hours and classroom expectations.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="lessons">lessons.ts &mdash; lesson delivery cycle</h2>
+      <p>
+        Server actions for the lesson delivery cycle &mdash; used from
+        <code>/spaces/[slug]</code> (curriculum library) and
+        <code>/spaces/[slug]/lessons/[id]</code> (view + objective progress):
+      </p>
+      <ul>
+        <li>Publishing lessons (draft &rarr; ready &rarr; delivered) with pages, activities, assessments.</li>
+        <li>Recording objective status per session+objective+learner (<code>not_attempted</code> / <code>developing</code> / <code>achieved</code> / <code>mastered</code>).</li>
+        <li>Learner self-tracking on objective results.</li>
+      </ul>
+
+      <h2 id="future">Where to add a new action</h2>
+      <ul>
+        <li>Onboarding / governance &rarr; <code>actions/console.ts</code></li>
+        <li>Curriculum / blueprint &rarr; <code>actions/curriculum.ts</code></li>
+        <li>Teaching plan &rarr; <code>actions/syllabus.ts</code></li>
+        <li>Lesson delivery &rarr; <code>actions/lessons.ts</code></li>
+      </ul>
+
+      <div class="pager">
+        <a href="routes.html"><span class="pkt">Previous</span>&larr; Routes &amp; Pages</a>
+        <a class="next" href="components.html"><span class="pkt">Next</span>UI Components &rarr;</a>
+      </div>
+
+      <footer class="doc-footer">
+        <span>TheGuild Developer Documentation</span>
+        <a href="../src/app/actions/console.ts">console.ts source</a>
+      </footer>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>
