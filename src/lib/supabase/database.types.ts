@@ -776,6 +776,7 @@ export type Database = {
           ecosystem_type: Database["public"]["Enums"]["ecosystem_type"] | null
           id: string
           must_change_password: boolean
+          node_type_id: number | null
           role: Database["public"]["Enums"]["profile_role"]
           status: Database["public"]["Enums"]["profile_status"]
           updated_at: string
@@ -790,6 +791,7 @@ export type Database = {
           ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"] | null
           id: string
           must_change_password?: boolean
+          node_type_id?: number | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
@@ -804,12 +806,21 @@ export type Database = {
           ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"] | null
           id?: string
           must_change_password?: boolean
+          node_type_id?: number | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_node_type_id_fkey"
+            columns: ["node_type_id"]
+            isOneToOne: false
+            referencedRelation: "node_types"
+            referencedColumns: ["type_id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -1380,6 +1391,7 @@ export type Database = {
           p_ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"]
           p_email: string
           p_full_name?: string
+          p_node_type_id?: number
           p_role: Database["public"]["Enums"]["profile_role"]
           p_status?: Database["public"]["Enums"]["profile_status"]
           p_temp_password: string
