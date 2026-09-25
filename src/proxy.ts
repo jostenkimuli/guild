@@ -35,6 +35,12 @@ export async function proxy(request: NextRequest) {
 
   const url = request.nextUrl;
 
+  // The /playground UI preview renders untethered mock data and live client
+  // theme toggling. Keep it out of production; it is a development tool.
+  if (process.env.NODE_ENV === "production" && url.pathname.startsWith("/playground")) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
   // Ecosystem subdomains: host the ecosystem's console on its subdomain so
   // `school.localhost/` (and /staff, /members, /students, /spaces) resolve to
   // the slug-keyed `/ecosystem/school/...` routes. The host <-> pathname

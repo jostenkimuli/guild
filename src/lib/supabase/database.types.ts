@@ -145,6 +145,7 @@ export type Database = {
           is_published: boolean | null
           name: string
           published_at: string | null
+          source_node_id: number | null
           space_id: string
           year: number
         }
@@ -155,6 +156,7 @@ export type Database = {
           is_published?: boolean | null
           name: string
           published_at?: string | null
+          source_node_id?: number | null
           space_id: string
           year: number
         }
@@ -165,10 +167,18 @@ export type Database = {
           is_published?: boolean | null
           name?: string
           published_at?: string | null
+          source_node_id?: number | null
           space_id?: string
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "curricula_source_node_id_fkey"
+            columns: ["source_node_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_nodes"
+            referencedColumns: ["curriculum_node_id"]
+          },
           {
             foreignKeyName: "curricula_space_id_fkey"
             columns: ["space_id"]
@@ -241,23 +251,38 @@ export type Database = {
       }
       curriculum_nodes: {
         Row: {
+          code: string | null
           created_at: string
           curriculum_node_id: number
+          order_index: number
           parent_node_id: number | null
+          payload: Json
+          published_at: string | null
+          status: string
           title: string
           type_id: number | null
         }
         Insert: {
+          code?: string | null
           created_at?: string
           curriculum_node_id?: number
+          order_index?: number
           parent_node_id?: number | null
+          payload?: Json
+          published_at?: string | null
+          status?: string
           title: string
           type_id?: number | null
         }
         Update: {
+          code?: string | null
           created_at?: string
           curriculum_node_id?: number
+          order_index?: number
           parent_node_id?: number | null
+          payload?: Json
+          published_at?: string | null
+          status?: string
           title?: string
           type_id?: number | null
         }
@@ -750,17 +775,26 @@ export type Database = {
       }
       node_types: {
         Row: {
+          allowed_children: string[] | null
           category: string
+          is_root: boolean
+          payload_schema: Json | null
           type_id: number
           type_name: string
         }
         Insert: {
+          allowed_children?: string[] | null
           category: string
+          is_root?: boolean
+          payload_schema?: Json | null
           type_id?: number
           type_name: string
         }
         Update: {
+          allowed_children?: string[] | null
           category?: string
+          is_root?: boolean
+          payload_schema?: Json | null
           type_id?: number
           type_name?: string
         }
@@ -776,6 +810,7 @@ export type Database = {
           ecosystem_type: Database["public"]["Enums"]["ecosystem_type"] | null
           id: string
           must_change_password: boolean
+          node_type_id: number | null
           role: Database["public"]["Enums"]["profile_role"]
           status: Database["public"]["Enums"]["profile_status"]
           updated_at: string
@@ -790,6 +825,7 @@ export type Database = {
           ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"] | null
           id: string
           must_change_password?: boolean
+          node_type_id?: number | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
@@ -804,12 +840,21 @@ export type Database = {
           ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"] | null
           id?: string
           must_change_password?: boolean
+          node_type_id?: number | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_node_type_id_fkey"
+            columns: ["node_type_id"]
+            isOneToOne: false
+            referencedRelation: "node_types"
+            referencedColumns: ["type_id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -1380,6 +1425,7 @@ export type Database = {
           p_ecosystem_type?: Database["public"]["Enums"]["ecosystem_type"]
           p_email: string
           p_full_name?: string
+          p_node_type_id?: number
           p_role: Database["public"]["Enums"]["profile_role"]
           p_status?: Database["public"]["Enums"]["profile_status"]
           p_temp_password: string
@@ -1412,6 +1458,10 @@ export type Database = {
           used_count: number
         }[]
       }
+      is_component_manifest_valid: {
+        Args: { p_payload: Json }
+        Returns: boolean
+      }
       is_ecosystem_admin_for_space: {
         Args: { p_space_id: string }
         Returns: boolean
@@ -1427,6 +1477,16 @@ export type Database = {
       is_effective_staff_anywhere: { Args: never; Returns: boolean }
       lesson_curriculum: { Args: { p_lesson_id: string }; Returns: string }
       lesson_space: { Args: { p_lesson_id: string }; Returns: string }
+      node_payload_valid:
+        | {
+            Args: {
+              p_parent_node_id: number
+              p_payload: Json
+              p_type_id: number
+            }
+            Returns: boolean
+          }
+        | { Args: { p_payload: Json; p_type_id: number }; Returns: boolean }
       term_curriculum: { Args: { p_term_id: string }; Returns: string }
       topic_curriculum: { Args: { p_topic_id: string }; Returns: string }
       unit_curriculum: { Args: { p_unit_id: string }; Returns: string }
