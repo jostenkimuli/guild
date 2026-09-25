@@ -58,8 +58,11 @@ SUPABASE_SERVICE_ROLE_KEY=&lt;service role key&gt;</code></pre>
       <pre><code>npm run db:reset</code></pre>
       <p>
         This reapplies every migration in <code>supabase/migrations/</code> from scratch and
-        runs <code>supabase/seed.sql</code>. Use it after pulling new schema work; it is
-        non-destructive to anything outside the local database.
+        runs the seed files listed in <code>supabase/config.toml</code>'s
+        <code>db.seed.sql_paths</code> &mdash; <code>seed.sql</code>, then the three
+        <code>supabase/seeds/national_curriculum_*.sql</code> files that load Uganda's NCDC
+        Primary&nbsp;1 curriculum and a demo school's implementation of it. Use it after
+        pulling new schema work; it is non-destructive to anything outside the local database.
       </p>
 
       <div class="code-title">5. Run the app</div>

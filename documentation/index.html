@@ -133,11 +133,13 @@
     components/spaces/    # syllabus + lesson components
     lib/supabase/         # browser + server clients, generated DB types
     lib/                  # utils, ecosystems labels, subdomain helpers
-    app/actions/          # server actions (console, lessons, curriculum, syllabus)
+    app/actions/          # server actions (console, curriculum, syllabus,
+                          #   ecosystem-theme, implementation)
     proxy.ts              # session refresh + subdomain rewriting + auth guard
   supabase/
-    migrations/           # 31 SQL migrations (schema + RLS + grants)
+    migrations/           # 35 SQL migrations (schema + RLS + grants)
     seed.sql              # local dev data (roles, ecosystem, curriculum)
+    seeds/                # national curriculum (NCDC P1) + demo school data
     config.toml           # local stack config (remapped ports)
   docs/
     CONCEPTUAL_MODEL.md   # domain blueprint

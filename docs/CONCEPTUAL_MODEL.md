@@ -75,6 +75,8 @@ should stay in lockstep with it.
 | Lesson parts | `activities`, `assessments`; shared `resources` via `lesson_resources` (M2M) | Sprint 2; parts of a lesson plan |
 | Unit projects | `projects` | Sprint 2; one project per unit |
 | Curriculum evaluation | `curriculum_evaluations` | Sprint 2; period + achievement rate per curriculum |
+| National curriculum (reference) | `national_curricula`, `national_aims`, `national_strands`, `curriculum_nodes`, `national_assessment_guidelines`, `national_period_allocations`, `national_rules`, `national_area_units` | Sprint 2 addendum; see §7 |
+| School implementation | `school_curriculum_adoptions`, `implementation_weeks` (+ strand plans), `implementation_timetables` (+ slots), `school_decisions` | Sprint 2 addendum; see §7 |
 | Challenge | — | returns as redesigned table (Sprint 5) |
 | Project | — | returns as redesigned table (Sprint 6) |
 
@@ -102,6 +104,56 @@ lesson_resources → resources; projects (per unit); curriculum_evaluations
 - Every row resolves to its curriculum (SECURITY DEFINER helpers); RLS then
   scopes access through the curriculum's Space: members read, space staff
   (admin/teacher) write.
+
+### National curriculum compliance (Sprint 2 addendum)
+
+A Space's `curricula` (§6) is the school's *own* record of what it teaches.
+Underneath it sits a second, distinct layer: what the *national* curriculum
+authority (NCDC, Uganda) actually requires, and the school's plan for
+delivering it. Full research on all six NCDC levels — pre-primary through
+BTVET — is in
+[`docs/NCDC_CURRICULUM_REFERENCE.md`](NCDC_CURRICULUM_REFERENCE.md); only
+one level (Lower Primary, P1) is loaded so far.
+
+**Reference layer** — platform data, the same for every school, read by any
+signed-in user and written only by a platform admin:
+
+```
+national_curricula                              (one row per NCDC document/level)
+  ├─ national_aims                               (national + primary-education aims)
+  ├─ national_strands                            (Mathematics, Literacy, ... ; thematic or not)
+  ├─ national_period_allocations                 (the level's fixed weekly periods, if it has any)
+  ├─ national_rules                               (language / timetable / assessment / teaching rules)
+  ├─ national_area_units                         (subjects run on their own schedule, e.g. RE, PE)
+  └─ curriculum_nodes                            (the curriculum tree — see below)
+       └─ national_assessment_guidelines         (per theme-type node, per strand)
+```
+
+`curriculum_nodes` is one generic, self-referencing tree rather than a
+level-specific table set. A row's kind is a plain `node_type` text column
+(`theme` / `sub_theme` / `competence` today), not a separate lookup table —
+NCDC's other levels are subject/strand/competency-based, not thematic, so a
+future level adds a `node_type` value (an ordinary migration widening a
+check constraint) instead of a parallel schema. Type-specific facts that
+don't earn their own column (a theme's `theme_no`/`term_no`, a sub-theme's
+`code`) live in a `jsonb attributes` column.
+
+**Implementation layer** — one school's own plan, written only by that
+school's owner (approved `ecosystem_admin`), read by its staff and teachers:
+
+```
+school_curriculum_adoptions      (which national_curricula this school follows)
+implementation_weeks             (per curriculum_node: teacher, dates, status, notes)
+  └─ implementation_week_strand_plans   (per strand: "how we will teach this")
+implementation_timetables        (per school + national_curriculum, periods/day)
+  └─ implementation_timetable_slots     (day/period → national_period_allocations)
+school_decisions                 (choices the curriculum leaves to the school,
+                                   e.g. language of instruction)
+```
+
+Two RPCs (`save_implementation_week`, `save_implementation_timetable`) write
+the multi-row plan and timetable atomically; the timetable RPC refuses to
+publish until every national period allocation is placed.
 
 ### Approval chain (Sprint 1)
 

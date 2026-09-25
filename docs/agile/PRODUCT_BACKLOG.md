@@ -52,6 +52,7 @@ priority (P0/P1/P2)`.
 | Phase | Sprints | Unlocks |
 | ----- | ------- | ------- |
 | 1. School → Classroom → Lessons → Teacher/Learner | 1–2 | Core system stability and user traction |
+| 1c. National curriculum compliance | 2 (added) | Schools plan against a real national curriculum, not an invented one |
 | 2. Mentor role | 3 | Mentorship / apprenticeship |
 | 3. Teams within a Space | 4 | Collaboration |
 | 4. Challenge + Project entities | 5–6 | Problem-solving |
@@ -149,6 +150,33 @@ priority (P0/P1/P2)`.
 - **M-4** — Ecosystem directory — As a visitor, I want to browse all public
   ecosystems, so that discovery is possible. (S, P2)
 
+## Epic 8 — National Curriculum Compliance (Phase 1c, P1)
+
+A school follows a real national curriculum (NCDC, Uganda), not an invented
+one. This epic keeps the two apart: the national requirement is read-only
+platform reference data; a school's plan for delivering it is the school
+owner's own, per-ecosystem data. See `docs/NCDC_CURRICULUM_REFERENCE.md` for
+the researched shape of all six NCDC levels, and `docs/CONCEPTUAL_MODEL.md`
+for the schema.
+
+- **NC-1** — Define the national curriculum — As a platform admin, I want the
+  official NCDC curriculum (themes, competences, weekly period allocation,
+  rules) loaded as read-only reference data, so that every school sees
+  exactly what is required. (M, P1 — **done for Uganda P1**, all 12 themes)
+- **NC-2** — Adopt a national curriculum — As a school owner, I want to adopt
+  the national curriculum that matches my school, so that I can plan against
+  it. (S, P1 — **done**)
+- **NC-3** — Translate into implementation standards — As a school owner, I
+  want to assign a teacher and plan each week, build a timetable that is
+  checked against the national rules before it can publish, and record the
+  choices the curriculum leaves to my school (language of instruction,
+  religious education, reporting), so that delivery matches the national
+  requirement. (L, P1 — **done**)
+- **NC-4** — Extend to other NCDC levels — As a platform admin, I want Upper
+  Primary, O-Level, A-Level and BTVET loaded against the same flexible
+  curriculum tree, so that schools beyond P1 are covered. (L, P2 — not
+  started; schema is generalised and ready for this, no redesign needed)
+
 ---
 
 ## Notes for sprint planning
@@ -165,3 +193,14 @@ priority (P0/P1/P2)`.
   (`communities`, `community_members`, `problems`, `projects`) is gone —
   Challenge and Project return redesigned in Sprints 5/6. Keep the RLS +
   grants + `db:types` discipline from the DoD on every migration.
+- National curriculum compliance (Epic 8) added onto Sprint 2's foundation:
+  `national_curricula` + `national_strands`/`national_aims`/
+  `national_period_allocations`/`national_rules`/`national_area_units`
+  (platform reference, read by anyone, written by platform admins), a
+  generic self-referencing `curriculum_nodes` tree (theme/sub_theme/
+  competence today, typed by a plain column — no lookup table, so a future
+  NCDC level widens a check constraint rather than adding a table), and the
+  school-owned implementation layer (`school_curriculum_adoptions`,
+  `implementation_weeks` + strand plans, `implementation_timetables` +
+  slots, `school_decisions`). See `docs/NCDC_CURRICULUM_REFERENCE.md` for
+  the source research and `docs/CONCEPTUAL_MODEL.md` for the schema.
