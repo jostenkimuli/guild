@@ -56,6 +56,10 @@ export default async function DashboardRootLayout({
       label: "Overview",
       items: [{ href: "/admin", label: "Admin" }],
     });
+    groups.push({
+      label: "Curriculum",
+      items: [{ href: "/admin/curricula", label: "National Curricula" }],
+    });
   }
 
   if (role === "ecosystem_admin" && profile?.status === "approved") {
@@ -79,6 +83,20 @@ export default async function DashboardRootLayout({
       groups.push({
         label: "Overview",
         items: [{ href: `/ecosystem/${ecosystem.slug}`, label: "Dashboard" }],
+      });
+
+      groups.push({
+        label: "Curriculum",
+        items: [
+          {
+            href: `/ecosystem/${ecosystem.slug}/curriculum`,
+            label: "National Curriculum",
+          },
+          {
+            href: `/ecosystem/${ecosystem.slug}/implementation`,
+            label: "Implementation",
+          },
+        ],
       });
 
       const { data: spaces } = await supabase
