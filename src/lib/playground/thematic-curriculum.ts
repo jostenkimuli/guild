@@ -1598,7 +1598,7 @@ export const mockThematicP3: MockThematicCurriculum = {
 // Catalog — one thematic curriculum document per level × edition
 // ---------------------------------------------------------------
 
-export const mockThematicCurricula: MockThematicCurriculum[] = [
+export let mockThematicCurricula: MockThematicCurriculum[] = [
   mockThematicP1,
   mockThematicP2,
   mockThematicP3,
@@ -1610,6 +1610,18 @@ export const mockThematicCurricula: MockThematicCurriculum[] = [
 
 export function getThematicCurricula(): MockThematicCurriculum[] {
   return mockThematicCurricula;
+}
+
+/**
+ * Overridable catalog — the playground mock/DB toggle swaps this module
+ * array in bulk so `getThematicCurricula`, `getThematicCurriculumById`,
+ * `getThematicCurriculum` and every downstream consumer read the active
+ * source without local edits.
+ */
+export function setMockThematicCurricula(
+  next: MockThematicCurriculum[],
+): void {
+  mockThematicCurricula = next;
 }
 
 export function getThematicCurriculumById(

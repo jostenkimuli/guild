@@ -10,6 +10,7 @@ import {
   ChurchIcon,
   CircleDashedIcon,
   ClockIcon,
+  DatabaseIcon,
   DumbbellIcon,
   FileTextIcon,
   LayersIcon,
@@ -89,6 +90,12 @@ import {
   type OnboardingStructureType,
 } from "@/components/playground/document-onboarding-dialog";
 import { ThematicDraftEditor } from "@/components/playground/thematic-draft-editor";
+import {
+  applyDatabaseDataset,
+  applyMockDataset,
+  getActiveSource,
+  type CurriculumDatabaseDataset,
+} from "@/lib/playground/mock-data-source";
 
 type Icon = ComponentType<{ className?: string }>;
 
@@ -1309,6 +1316,57 @@ function ModeSwitch({
   );
 }
 
+type DataSourceName = "mock" | "database";
+
+function DataSourceSwitch({
+  source,
+  databaseAvailable,
+  onChange,
+}: {
+  source: DataSourceName;
+  databaseAvailable: boolean;
+  onChange: (source: DataSourceName) => void;
+}) {
+  const options: { value: DataSourceName; label: string; icon: Icon }[] = [
+    { value: "mock", label: "Mock data", icon: FileTextIcon },
+    { value: "database", label: "curriculum_nodes", icon: DatabaseIcon },
+  ];
+
+  return (
+    <div className="inline-flex w-fit max-w-full flex-wrap items-center gap-1 rounded-lg bg-muted p-1">
+      {options.map((option) => {
+        const Icon = option.icon;
+        const active = source === option.value;
+        const disabled =
+          option.value === "database" && !databaseAvailable;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            disabled={disabled}
+            title={
+              disabled
+                ? "No rows in public.curriculum_nodes — run scripts/seed-national-standards.mjs"
+                : undefined
+            }
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              disabled && "cursor-not-allowed opacity-50",
+              active
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon className="size-4" />
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------
 // Thematic curriculum (P1–P3) — document header
 // ---------------------------------------------------------------
@@ -2121,16 +2179,50 @@ function ThematicCurriculumPreview({
 // Root preview
 // ---------------------------------------------------------------
 
-export function CurriculumAdminPreview() {
+export function CurriculumAdminPreview({
+  databaseDataset = null,
+  databaseError = null,
+}: {
+  databaseDataset?: CurriculumDatabaseDataset | null;
+  databaseError?: string | null;
+}) {
   const firstTemplate =
     mockNationalTemplates.find((template) => template.status === "published") ??
     mockNationalTemplates[0];
   const defaultThematic = getThematicCurriculum();
   const [mode, setMode] = useState<PreviewMode>("templates");
+  const [dataSource, setDataSource] = useState<DataSourceName>("mock");
   const [templateId, setTemplateId] = useState(firstTemplate?.id ?? "");
   const [syllabusId, setSyllabusId] = useState<string | null>(null);
   const [thematicId, setThematicId] = useState(defaultThematic.id);
   const [, setThematicRevision] = useState(0);
+
+  // Re-assert the active source every render. The admin page swaps the
+  // shared mock module arrays server-side to DB data; this keeps the
+  // playground rendering its own configured source (mock by default)
+  // without clobbering in-memory mock edits made in this component.
+  if (dataSource === "mock" && getActiveSource() !== "mock") {
+    applyMockDataset();
+  } else if (dataSource === "database" && databaseDataset) {
+    applyDatabaseDataset(databaseDataset);
+  }
+
+  const handleDataSourceChange = (next: DataSourceName) => {
+    if (next === "database" && databaseDataset) {
+      applyDatabaseDataset(databaseDataset);
+    } else {
+      applyMockDataset();
+    }
+    setDataSource(next);
+    const firstPublished =
+      mockNationalTemplates.find(
+        (template) => template.status === "published",
+      ) ?? mockNationalTemplates[0];
+    setTemplateId(firstPublished?.id ?? "");
+    setSyllabusId(null);
+    const defaultDocument = getThematicCurriculum();
+    if (defaultDocument) setThematicId(defaultDocument.id);
+  };
 
   const [onboardingStructureType, setOnboardingStructureType] =
     useState<OnboardingStructureType>("subject");
@@ -2160,7 +2252,26 @@ export function CurriculumAdminPreview() {
 
   return (
     <div className="space-y-6">
-      <ModeSwitch mode={mode} onChange={setMode} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ModeSwitch mode={mode} onChange={setMode} />
+        <DataSourceSwitch
+          source={dataSource}
+          databaseAvailable={Boolean(databaseDataset)}
+          onChange={handleDataSourceChange}
+        />
+      </div>
+
+      {dataSource === "database" && databaseDataset ? (
+        <p className="text-xs text-muted-foreground">
+          Live view of public.curriculum_nodes — {databaseDataset.nodeCount}{" "}
+          nodes across {Object.keys(databaseDataset.counts).length} types.
+        </p>
+      ) : null}
+      {databaseError ? (
+        <p className="text-sm text-destructive">
+          Curriculum database feed unavailable: {databaseError}
+        </p>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
         <aside>

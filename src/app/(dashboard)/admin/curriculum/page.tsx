@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { CurriculumAdminPreview } from "@/components/admin/curriculum/curriculum-admin-preview";
+import { StandardRegistryPanel } from "@/components/admin/curriculum/standard-registry-panel";
 import { Badge } from "@/components/ui/badge";
+import { loadNationalStandardDataset, loadStandardRegistry } from "@/lib/curriculum-spine";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminCurriculumPage() {
@@ -24,6 +26,11 @@ export default async function AdminCurriculumPage() {
     redirect("/");
   }
 
+  const [dataset, registry] = await Promise.all([
+    loadNationalStandardDataset(),
+    loadStandardRegistry(),
+  ]);
+
   return (
     <section className="mt-4 space-y-6">
       <div className="space-y-2">
@@ -40,11 +47,14 @@ export default async function AdminCurriculumPage() {
           and the thematic P1–P3 curriculum. Both arms are organized around the
           four universal curriculum components — Intent, Content, Learning
           &amp; Teaching, and Assessment — with a completeness gauge per
-          document.
+          document. Below them, the schema-driven standards registry hosts any
+          curriculum definition that speaks the four-component language.
         </p>
       </div>
 
-      <CurriculumAdminPreview />
+      <CurriculumAdminPreview dataset={dataset} />
+
+      <StandardRegistryPanel types={registry.types} nodes={registry.nodes} />
     </section>
   );
 }

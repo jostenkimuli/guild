@@ -9,7 +9,7 @@ import type { Enums, Tables } from "@/lib/supabase/database.types";
 import {
   AIMS_OF_PRIMARY_EDUCATION,
   NATIONAL_AIMS,
-} from "@/lib/playground/thematic-curriculum";
+} from "./thematic-curriculum.ts";
 
 // ---------------------------------------------------------------
 // Ecosystem + spaces
@@ -970,7 +970,7 @@ export interface MockSyllabusView extends MockNationalSyllabus {
   outcomes: MockCurriculumOutcome[];
 }
 
-export const mockNationalTemplates: MockNationalTemplate[] = [
+export let mockNationalTemplates: MockNationalTemplate[] = [
   {
     id: "nat-upe",
     name: "Uganda Primary Curriculum",
@@ -1102,7 +1102,7 @@ export const mockNationalTemplates: MockNationalTemplate[] = [
   },
 ];
 
-export const mockTemplateSubjects: MockTemplateSubject[] = [
+export let mockTemplateSubjects: MockTemplateSubject[] = [
   { id: "ts-math", template_id: "nat-upe", name: "Mathematics", code: "MATH", sequence: 1 },
   { id: "ts-eng", template_id: "nat-upe", name: "English", code: "ENG", sequence: 2 },
   { id: "ts-sci", template_id: "nat-upe", name: "Science", code: "SCI", sequence: 3 },
@@ -1113,7 +1113,7 @@ export const mockTemplateSubjects: MockTemplateSubject[] = [
   { id: "ts-pe", template_id: "nat-upe", name: "Physical Education", code: "PE", sequence: 8 },
 ];
 
-export const mockTemplateLevels: MockTemplateLevel[] = Array.from(
+export let mockTemplateLevels: MockTemplateLevel[] = Array.from(
   { length: 7 },
   (_, index) => ({
     id: `tl-p${index + 1}`,
@@ -1123,7 +1123,7 @@ export const mockTemplateLevels: MockTemplateLevel[] = Array.from(
   }),
 );
 
-export const mockNationalSyllabi: MockNationalSyllabus[] = [
+export let mockNationalSyllabi: MockNationalSyllabus[] = [
   {
     id: "syb-p1-math",
     template_id: "nat-upe",
@@ -1291,7 +1291,7 @@ export const mockNationalSyllabi: MockNationalSyllabus[] = [
 
 // Scope and sequence — the topic rows taught within each national syllabus.
 
-export const mockSyllabusTopics: MockSyllabusTopic[] = [
+export let mockSyllabusTopics: MockSyllabusTopic[] = [
   {
     id: "syt-p1m-1",
     syllabus_id: "syb-p1-math",
@@ -1394,7 +1394,7 @@ export const mockSyllabusTopics: MockSyllabusTopic[] = [
   },
 ];
 
-export const mockCurriculumOutcomes: MockCurriculumOutcome[] = [
+export let mockCurriculumOutcomes: MockCurriculumOutcome[] = [
   {
     id: "no-p1m-1",
     syllabus_id: "syb-p1-math",
@@ -1666,6 +1666,30 @@ export const mockCurriculumOutcomes: MockCurriculumOutcome[] = [
     ],
   },
 ];
+
+// Overridable national-standard dataset — the playground mock/DB toggle
+// swaps these module arrays in bulk so every getter below (and every
+// downstream consumer) reads from the active source without local edits.
+
+export interface MockNationalStandardDataset {
+  templates: MockNationalTemplate[];
+  templateSubjects: MockTemplateSubject[];
+  templateLevels: MockTemplateLevel[];
+  nationalSyllabi: MockNationalSyllabus[];
+  syllabusTopics: MockSyllabusTopic[];
+  curriculumOutcomes: MockCurriculumOutcome[];
+}
+
+export function setMockNationalStandardDataset(
+  dataset: MockNationalStandardDataset,
+): void {
+  mockNationalTemplates = dataset.templates;
+  mockTemplateSubjects = dataset.templateSubjects;
+  mockTemplateLevels = dataset.templateLevels;
+  mockNationalSyllabi = dataset.nationalSyllabi;
+  mockSyllabusTopics = dataset.syllabusTopics;
+  mockCurriculumOutcomes = dataset.curriculumOutcomes;
+}
 
 // Convenience selectors for the cycle-1 preview.
 

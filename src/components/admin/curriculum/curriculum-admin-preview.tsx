@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ComponentType } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArchiveIcon,
   ArrowLeftIcon,
@@ -49,6 +50,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   type MockCompetenceType,
@@ -65,7 +76,6 @@ import {
   getTemplateById,
   getTopicsForSyllabus,
   mockNationalTemplates,
-  createNationalTemplateDraft,
 } from "@/lib/playground/mock";
 import {
   type MockThematicCurriculum,
@@ -77,15 +87,23 @@ import {
   getThematicCurriculum,
   getThematicCurriculumById,
   getThematicStats,
-  createThematicCurriculumDraft,
-  applyThematicManualEntry,
-  applyThematicDraftIdentity,
   type ThematicDraftIdentity,
   type ThematicManualEntry,
-  mockThematicCurricula,
 } from "@/lib/playground/thematic-curriculum";
 import {
+  applyDatabaseDataset,
+  type CurriculumDatabaseDataset,
+} from "@/lib/playground/mock-data-source";
+import {
+  createNationalStandard,
+  saveThematicCurriculum,
+  setTemplateStatus,
+  updateTemplateMetadata,
+  type NationalTemplateMetadataInput,
+} from "@/app/actions/national-standard";
+import {
   DocumentOnboardingDialog,
+  type OnboardingCreatePayload,
   type OnboardingStructureType,
 } from "@/components/admin/curriculum/document-onboarding-dialog";
 import { ThematicDraftEditor } from "@/components/admin/curriculum/thematic-draft-editor";
@@ -843,6 +861,120 @@ function SyllabiTab({
 }
 
 // ---------------------------------------------------------------
+// Template edit dialog (metadata)
+// ---------------------------------------------------------------
+
+function TemplateEditDialog({
+  template,
+  onClose,
+  onSave,
+}: {
+  template: MockNationalTemplate;
+  onClose: () => void;
+  onSave: (values: NationalTemplateMetadataInput) => Promise<void>;
+}) {
+  const [name, setName] = useState(template.name);
+  const [code, setCode] = useState(template.code);
+  const [country, setCountry] = useState(template.country);
+  const [year, setYear] = useState(String(template.year));
+  const [version, setVersion] = useState(template.version);
+  const [saving, setSaving] = useState(false);
+
+  const valid =
+    name.trim().length > 0 &&
+    code.trim().length > 0 &&
+    country.trim().length > 0 &&
+    /^\d+$/.test(year.trim()) &&
+    version.trim().length > 0;
+
+  const submit = async () => {
+    if (!valid || saving) return;
+    setSaving(true);
+    await onSave({
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      country: country.trim(),
+      year: Number.parseInt(year, 10),
+      version: version.trim(),
+    });
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base">Edit template metadata</DialogTitle>
+          <DialogDescription className="text-xs">
+            Update the identity fields of this national template.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="te-name">Official title</Label>
+            <Input
+              id="te-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="te-code">Code</Label>
+            <Input
+              id="te-code"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              className="font-mono"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="te-country">Country</Label>
+            <Input
+              id="te-country"
+              value={country}
+              onChange={(event) => setCountry(event.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="te-year">Year</Label>
+              <Input
+                id="te-year"
+                value={year}
+                inputMode="numeric"
+                onChange={(event) => setYear(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="te-version">Version</Label>
+              <Input
+                id="te-version"
+                value={version}
+                onChange={(event) => setVersion(event.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button type="button" onClick={submit} disabled={!valid || saving}>
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------
 // Template detail
 // ---------------------------------------------------------------
 
@@ -850,11 +982,18 @@ function TemplateDetail({
   template,
   syllabi,
   onOpenSyllabus,
+  onRequestNew,
+  onEdit,
+  onToggleStatus,
 }: {
   template: MockNationalTemplate;
   syllabi: MockSyllabusView[];
   onOpenSyllabus: (id: string) => void;
+  onRequestNew: () => void;
+  onEdit: (values: NationalTemplateMetadataInput) => Promise<void>;
+  onToggleStatus: (status: MockTemplateStatus) => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const subjects = getSubjectsForTemplate(template.id);
   const levels = getLevelsForTemplate(template.id);
   const outcomeCount = syllabi.reduce(
@@ -895,7 +1034,8 @@ function TemplateDetail({
               <Button
                 variant="outline"
                 size="sm"
-                title="Design preview — not wired"
+                type="button"
+                onClick={onRequestNew}
               >
                 <PlusIcon />
                 New template
@@ -903,14 +1043,18 @@ function TemplateDetail({
               <Button
                 variant="outline"
                 size="sm"
-                title="Design preview — not wired"
+                type="button"
+                onClick={() => setEditing(true)}
               >
                 <PencilIcon />
                 Edit
               </Button>
               <Button
                 size="sm"
-                title="Design preview — not wired"
+                type="button"
+                onClick={() =>
+                  onToggleStatus(isPublished ? "archived" : "published")
+                }
               >
                 {isPublished ? <ArchiveIcon /> : <CheckCircle2Icon />}
                 {actionLabel}
@@ -969,6 +1113,14 @@ function TemplateDetail({
           <TemplateAssessmentTab template={template} syllabi={syllabi} />
         </TabsContent>
       </Tabs>
+
+      {editing && (
+        <TemplateEditDialog
+          template={template}
+          onClose={() => setEditing(false)}
+          onSave={onEdit}
+        />
+      )}
     </div>
   );
 }
@@ -1331,9 +1483,11 @@ function FidelityBadge({
 function ThematicDocumentCard({
   curriculum,
   onEdit,
+  onToggleStatus,
 }: {
   curriculum: MockThematicCurriculum;
   onEdit?: () => void;
+  onToggleStatus?: () => void;
 }) {
   return (
     <Card>
@@ -1354,10 +1508,21 @@ function ThematicDocumentCard({
                 Edit
               </Button>
             ) : null}
-            <Button size="sm" title="Design preview — not wired">
-              <ArchiveIcon />
-              Archive
-            </Button>
+            {onToggleStatus ? (
+              <Button
+                size="sm"
+                type="button"
+                onClick={onToggleStatus}
+                title={curriculum.status === "published" ? "Archive this document" : "Publish this document"}
+              >
+                {curriculum.status === "published" ? (
+                  <ArchiveIcon />
+                ) : (
+                  <CheckCircle2Icon />
+                )}
+                {curriculum.status === "published" ? "Archive" : "Publish"}
+              </Button>
+            ) : null}
           </div>
         </div>
         <CardDescription>
@@ -2021,9 +2186,11 @@ function ThemeDetail({
 function ThematicCurriculumPreview({
   curriculum,
   onSave,
+  onToggleStatus,
 }: {
   curriculum: MockThematicCurriculum;
   onSave: (identity: ThematicDraftIdentity, entry: ThematicManualEntry) => void;
+  onToggleStatus: () => void;
 }) {
   const stats = getThematicStats(curriculum);
   const [editing, setEditing] = useState(false);
@@ -2064,6 +2231,7 @@ function ThematicCurriculumPreview({
       <ThematicDocumentCard
         curriculum={curriculum}
         onEdit={() => setEditing(true)}
+        onToggleStatus={onToggleStatus}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -2121,7 +2289,14 @@ function ThematicCurriculumPreview({
 // Root preview
 // ---------------------------------------------------------------
 
-export function CurriculumAdminPreview() {
+export function CurriculumAdminPreview({
+  dataset,
+}: {
+  dataset: CurriculumDatabaseDataset;
+}) {
+  applyDatabaseDataset(dataset);
+
+  const router = useRouter();
   const firstTemplate =
     mockNationalTemplates.find((template) => template.status === "published") ??
     mockNationalTemplates[0];
@@ -2130,7 +2305,6 @@ export function CurriculumAdminPreview() {
   const [templateId, setTemplateId] = useState(firstTemplate?.id ?? "");
   const [syllabusId, setSyllabusId] = useState<string | null>(null);
   const [thematicId, setThematicId] = useState(defaultThematic.id);
-  const [, setThematicRevision] = useState(0);
 
   const [onboardingStructureType, setOnboardingStructureType] =
     useState<OnboardingStructureType>("subject");
@@ -2141,21 +2315,53 @@ export function CurriculumAdminPreview() {
   const syllabi = template ? getSyllabiForTemplate(template.id) : [];
   const thematic = getThematicCurriculumById(thematicId);
 
-  const handleThematicSave = (
+  const handleCreateDocument = async (payload: OnboardingCreatePayload) => {
+    const result = await createNationalStandard(payload);
+    if (result.success && result.id) {
+      if (payload.structureType === "thematic") setThematicId(result.id);
+      else {
+        setTemplateId(result.id);
+        setSyllabusId(null);
+      }
+    }
+    setOnboardingOpen(false);
+    router.refresh();
+  };
+
+  const handleTemplateSaved = async (
+    code: string,
+    values: NationalTemplateMetadataInput,
+  ) => {
+    await updateTemplateMetadata(code, values);
+    router.refresh();
+  };
+
+  const handleTemplateStatus = async (
+    code: string,
+    status: MockTemplateStatus,
+  ) => {
+    await setTemplateStatus(code, status);
+    router.refresh();
+  };
+
+  const handleThematicSave = async (
     identity: ThematicDraftIdentity,
     entry: ThematicManualEntry,
   ) => {
     const existing = getThematicCurriculumById(thematicId);
     if (!existing) return;
-    const updated = applyThematicManualEntry(
-      applyThematicDraftIdentity(existing, identity),
-      entry,
+    await saveThematicCurriculum(existing.code, identity, entry);
+    router.refresh();
+  };
+
+  const handleThematicStatus = async () => {
+    const existing = getThematicCurriculumById(thematicId);
+    if (!existing) return;
+    await setTemplateStatus(
+      existing.code,
+      existing.status === "published" ? "archived" : "published",
     );
-    const index = mockThematicCurricula.findIndex(
-      (item) => item.id === existing.id,
-    );
-    if (index >= 0) mockThematicCurricula[index] = updated;
-    setThematicRevision((revision) => revision + 1);
+    router.refresh();
   };
 
   return (
@@ -2195,6 +2401,7 @@ export function CurriculumAdminPreview() {
                 key={thematic.id}
                 curriculum={thematic}
                 onSave={handleThematicSave}
+                onToggleStatus={handleThematicStatus}
               />
             ) : (
               <Card>
@@ -2217,6 +2424,14 @@ export function CurriculumAdminPreview() {
               template={template}
               syllabi={syllabi}
               onOpenSyllabus={setSyllabusId}
+              onRequestNew={() => {
+                setOnboardingStructureType("subject");
+                setOnboardingOpen(true);
+              }}
+              onEdit={(values) => handleTemplateSaved(template.code, values)}
+              onToggleStatus={(status) =>
+                handleTemplateStatus(template.code, status)
+              }
             />
           ) : (
             <Card>
@@ -2235,37 +2450,7 @@ export function CurriculumAdminPreview() {
           structureType={onboardingStructureType}
           onOpenChange={setOnboardingOpen}
           onCreate={(payload) => {
-            if (payload.structureType === "thematic") {
-              const draft = createThematicCurriculumDraft({
-                level: payload.levels[0] ?? "P1",
-                name: payload.officialTitle,
-                edition: payload.edition,
-                year: payload.year,
-                note:
-                  payload.entryMode === "manual"
-                    ? "New thematic curriculum by super admin — captured manually in the onboarding wizard (no PDF transcription)."
-                    : payload.note ??
-                      "New thematic curriculum by super admin — PDF not yet transcribed.",
-              });
-              const created = payload.entry
-                ? applyThematicManualEntry(draft, payload.entry)
-                : draft;
-              mockThematicCurricula.push(created);
-              setThematicId(created.id);
-            } else {
-              const draft = createNationalTemplateDraft({
-                name: payload.officialTitle,
-                code: payload.code,
-                country: payload.country,
-                issuer: payload.issuer,
-                year: payload.year,
-                levels: payload.levels,
-              });
-              mockNationalTemplates.push(draft);
-              setTemplateId(draft.id);
-              setSyllabusId(null);
-            }
-            setOnboardingOpen(false);
+            void handleCreateDocument(payload);
           }}
         />
       )}

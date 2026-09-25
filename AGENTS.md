@@ -23,6 +23,9 @@ Supabase.
 - `npm.cmd run lint` / `npm.cmd run typecheck` / `npm.cmd run build`
 - `npm.cmd run db:reset` — reapplies migrations + seed from scratch
 - `npm.cmd run db:types` — regenerates `src/lib/supabase/database.types.ts`
+- `npm.cmd run db:seed:standards` — national standards + demo standards
+  (`scripts/seed-demo-standards.mjs`); `npm.cmd run db:seed:demo` runs only the
+  demo arm. Demo seeds are idempotent by root `code`.
 - `supabase.cmd start|stop|studio` — local backend (Studio on :55423)
 
 ## Architecture
@@ -76,5 +79,34 @@ RLS scopes members-read / staff-write through the space. The old
 Sprints 5/6. Lessons are published at `/spaces/[slug]` (curriculum library)
 and `/spaces/[slug]/lessons/[id]` (view), actions in
 `src/app/actions/lessons.ts`.
+
+## Standard registry (schema-as-data)
+
+National standards and any external curriculum definition live as **data**, not
+code, over the universal `curriculum_nodes` tree (`node_types` is the registry).
+Contract:
+
+- `node_types` rows define `type_name`, `category`, `is_root`, and — for
+  root-capable types — the four-component manifest and a draft-7 `payload_schema`
+  (custom `x-order`/`x-help` keywords are ignored by pg_jsonschema). Define on
+  the admin page (`/admin/curriculum`, Standard Registry panel) or via
+  migrations; `curriculum_nodes`/`node_types` writes are super-admin-only (RLS).
+- Root types must carry a `component_manifest` with **exactly** the ids
+  `intent | content | learning_teaching | assessment`; every component should
+  resolve to populated payload anchors so `computeComponentCoverage`
+  (`src/lib/curriculum-spine/registry.ts`) reports 4/4. Non-root types cannot
+  be top-level documents (parent guard). In all cases `node_payload_valid` +
+  the `curriculum_nodes_payload_check` CHECK is the authority and rejects
+  schema-violating payloads.
+- Types migrate with `on conflict (type_name) do nothing`; demo documents are
+  seeded idempotently by root `code`. Existing demo roots:
+  `KFZ-MECH-2020` (Germany), `KNEC-KISW-CBC` (Kenya Kiswahili),
+  `NCAD-TRANS-01` (Ireland).
+- Core libs `src/lib/curriculum-spine/schema.ts` + `manifest.ts` are
+  dependency-free (and `registry.ts` uses explicit `.ts` imports) so both Next
+  and node scripts can import them. `toJson` lives in
+  `src/lib/curriculum-spine/json.ts` (NOT in a `"use server"` module —
+  server actions must all be async). Node scripts that POST via PostgREST must
+  send `Prefer: return=representation` or the body comes back empty.
 
 <!-- END:theguild-project-rules -->
