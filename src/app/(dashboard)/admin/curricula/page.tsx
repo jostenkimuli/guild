@@ -67,7 +67,7 @@ export default async function AdminCurriculaPage() {
                 <TableHead>Level</TableHead>
                 <TableHead>School type</TableHead>
                 <TableHead>Authority</TableHead>
-                <TableHead className="text-right">Themes</TableHead>
+                <TableHead>Structure</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -87,7 +87,13 @@ export default async function AdminCurriculaPage() {
                   </TableCell>
                   <TableCell>{ecosystemTypeLabel(c.ecosystem_type)}</TableCell>
                   <TableCell className="text-muted-foreground">{c.authority}</TableCell>
-                  <TableCell className="text-right tabular-nums">{c.theme_count}</TableCell>
+                  <TableCell className="text-muted-foreground tabular-nums">
+                    {c.theme_count > 0
+                      ? `${c.theme_count} theme${c.theme_count === 1 ? "" : "s"}`
+                      : c.strand_count > 0
+                        ? `${c.strand_count} subject${c.strand_count === 1 ? "" : "s"}`
+                        : "Not built out yet"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

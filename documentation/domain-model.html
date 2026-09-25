@@ -25,7 +25,6 @@
         <a href="#constraints">Structural constraints</a>
         <a href="#user-journey">User journey</a>
         <a href="#curriculum-tree">The curriculum tree</a>
-        <a href="#national-curriculum">National curriculum compliance</a>
         <a href="#approval-chain">Approval chain</a>
         <a href="#schema-mapping">Schema mapping</a>
         <a href="#roadmap">Roadmap entities</a>
@@ -116,46 +115,6 @@
         <a href="security.html">Auth, Roles &amp; RLS</a>.
       </p>
 
-      <h2 id="national-curriculum">National curriculum compliance (Sprint 2 addendum)</h2>
-      <p>
-        A Space's own <code>curricula</code> tree above is what a school teaches. A second,
-        distinct layer sits underneath it: what the <strong>national</strong> curriculum
-        authority (NCDC, Uganda) actually requires, and the school's own plan for delivering
-        it. Full research on all six NCDC levels &mdash; pre-primary through BTVET &mdash; is
-        in
-        <a href="../docs/NCDC_CURRICULUM_REFERENCE.md">the NCDC curriculum reference</a>;
-        only Lower Primary (P1) is loaded so far.
-      </p>
-      <pre><code>national_curricula                     (one row per NCDC document/level -- platform reference)
-  &#9500;&#9472; national_aims / national_strands
-  &#9500;&#9472; national_period_allocations / national_rules
-  &#9500;&#9472; national_area_units             (subjects on their own schedule, e.g. RE, PE)
-  &#9492;&#9472; curriculum_nodes                 (the curriculum tree -- see below)
-       &#9492;&#9472; national_assessment_guidelines
-
-school_curriculum_adoptions            (which national_curricula a school follows -- per school)
-implementation_weeks (+ strand plans)  (a school's plan for one curriculum_node)
-implementation_timetables (+ slots)    (a school's weekly timetable)
-school_decisions                       (choices the curriculum leaves to the school)</code></pre>
-      <p>
-        <code>curriculum_nodes</code> is one generic, self-referencing tree rather than a
-        level-specific table set. A row's kind is a plain <code>node_type</code> text column
-        (<code>theme</code> / <code>sub_theme</code> / <code>competence</code> today) &mdash;
-        not a lookup table &mdash; because NCDC's other levels are subject/strand/competency-based,
-        not thematic: a future level adds a <code>node_type</code> value (an ordinary migration
-        widening a check constraint) instead of a parallel schema. Type-specific facts that
-        don't earn their own column live in a <code>jsonb attributes</code> column.
-      </p>
-      <div class="card">
-        <strong>Two access rules, deliberately different:</strong> the reference layer is
-        read by any signed-in user and written only by a platform admin (<code>super_admin</code>/
-        <code>program_admin</code>); the implementation layer is read by a school's own staff
-        and teachers and written only by that school's owner (an approved <code>ecosystem_admin</code>).
-        Two RPCs, <code>save_implementation_week</code> and <code>save_implementation_timetable</code>,
-        write each multi-row plan atomically; the timetable RPC refuses to publish until every
-        national period allocation is placed.
-      </div>
-
       <h2 id="approval-chain">Approval chain (Sprint 1)</h2>
       <pre><code>super_admin ──creates──► program_admin (pending)
   └─ approves program admins
@@ -183,8 +142,6 @@ space_admin ──creates──► spaces + invitation codes
           <tr><td>Space</td><td><code>spaces</code> (+ <code>space_memberships</code>, <code>space_edits</code>)</td></tr>
           <tr><td>Invitation codes</td><td><code>invitation_codes</code></td></tr>
           <tr><td>Content</td><td><code>curricula</code>, <code>grades</code>&hellip;<code>topics</code>, <code>lessons</code>, <code>resources</code>, <code>syllabi</code></td></tr>
-          <tr><td>National curriculum (reference)</td><td><code>national_curricula</code>, <code>national_aims</code>, <code>national_strands</code>, <code>curriculum_nodes</code>, <code>national_assessment_guidelines</code>, <code>national_period_allocations</code>, <code>national_rules</code>, <code>national_area_units</code></td></tr>
-          <tr><td>School implementation</td><td><code>school_curriculum_adoptions</code>, <code>implementation_weeks</code> (+ strand plans), <code>implementation_timetables</code> (+ slots), <code>school_decisions</code></td></tr>
           <tr><td>Challenge</td><td><em>(redesigned table in Sprint 5)</em></td></tr>
           <tr><td>Project</td><td><code>projects</code> (per unit) &mdash; overall model returns in Sprint 6</td></tr>
           <tr><td>Team</td><td><em>(Sprint 4)</em></td></tr>

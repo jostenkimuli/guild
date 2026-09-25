@@ -54,25 +54,6 @@
       <div class="schema-row"><span class="schema-name">curriculum_evaluations</span><span class="schema-note">period + achievement rate per curriculum</span></div>
       <div class="schema-row"><span class="schema-name">syllabi</span><span class="schema-note">per-curriculum teaching plan: grading policy, required materials, instructor notes, office hours, classroom expectations, <code>teacher_id</code></span></div>
 
-      <h3>National curriculum compliance (Sprint 2 addendum)</h3>
-      <p>
-        A second, distinct layer underneath the curriculum tree above: what NCDC (Uganda)
-        actually requires (platform reference, read by anyone, written by platform admins
-        only) and a school's own plan for delivering it (written only by that school's
-        owner). See <a href="../docs/CONCEPTUAL_MODEL.md">Conceptual model &sect;7</a> and
-        <a href="../docs/NCDC_CURRICULUM_REFERENCE.md">the NCDC curriculum reference</a>.
-      </p>
-      <div class="schema-row"><span class="schema-name">national_curricula</span><span class="schema-note">one row per NCDC document/level; <code>slug</code>, <code>title</code>, <code>authority</code>, <code>class_level</code>, <code>ecosystem_type</code>, <code>edition</code>, <code>orientation_terms</code></span></div>
-      <div class="schema-row"><span class="schema-name">national_aims / national_strands</span><span class="schema-note">national + primary-education aims; strands (Mathematics, Literacy, &hellip;), thematic or not</span></div>
-      <div class="schema-row"><span class="schema-name">curriculum_nodes</span><span class="schema-note">the curriculum tree &mdash; one generic, self-referencing table (<code>parent_id</code>) typed by a plain <code>node_type</code> text column (<code>theme</code> / <code>sub_theme</code> / <code>competence</code> today, no lookup table), with a <code>jsonb attributes</code> column for facts that don't earn their own column</span></div>
-      <div class="schema-row"><span class="schema-name">national_assessment_guidelines</span><span class="schema-note">"competences that can be assessed" per theme node, per strand</span></div>
-      <div class="schema-row"><span class="schema-name">national_period_allocations / national_rules</span><span class="schema-note">the level's fixed weekly periods (if it has any) and its language/timetable/assessment/teaching rules</span></div>
-      <div class="schema-row"><span class="schema-name">national_area_units</span><span class="schema-note">subjects that run on their own schedule outside the tree, e.g. Religious Education, Physical Education</span></div>
-      <div class="schema-row"><span class="schema-name">school_curriculum_adoptions</span><span class="schema-note">which <code>national_curricula</code> row a school follows</span></div>
-      <div class="schema-row"><span class="schema-name">implementation_weeks / implementation_week_strand_plans</span><span class="schema-note">a school's plan for one <code>curriculum_node</code>: teacher, dates, status, per-strand "how we will teach this"</span></div>
-      <div class="schema-row"><span class="schema-name">implementation_timetables / implementation_timetable_slots</span><span class="schema-note">a school's weekly timetable; the <code>save_implementation_timetable</code> RPC refuses to publish until every required period is placed</span></div>
-      <div class="schema-row"><span class="schema-name">school_decisions</span><span class="schema-note">choices the national curriculum leaves to the school, e.g. language of instruction</span></div>
-
       <h2 id="enums">Enums</h2>
       <table>
         <thead><tr><th>Enum</th><th>Values</th></tr></thead>
@@ -84,13 +65,11 @@
           <tr><td><code>profile_status</code></td><td><code>pending</code>, <code>approved</code></td></tr>
           <tr><td><code>assessment_type</code></td><td><code>quiz</code>, <code>exercise</code>, <code>test</code>, <code>project</code></td></tr>
           <tr><td><code>delivery_type</code></td><td><code>self_paced</code>, <code>live</code>, <code>hybrid</code></td></tr>
-          <tr><td><code>requirement_level</code></td><td><code>mandatory</code>, <code>required_outcome</code>, <code>flexible</code></td></tr>
-          <tr><td><code>implementation_status</code></td><td><code>not_started</code>, <code>draft</code>, <code>ready</code>, <code>approved</code></td></tr>
         </tbody>
       </table>
 
       <h2 id="migration-history">Migration history</h2>
-      <p>35 migrations in <code>supabase/migrations/</code>, applied in timestamp order by <code>npm run db:reset</code>.</p>
+      <p>31 migrations in <code>supabase/migrations/</code>, applied in timestamp order by <code>npm run db:reset</code>.</p>
       <table>
         <thead><tr><th>Migration</th><th>What it shipped</th></tr></thead>
         <tbody>
@@ -125,10 +104,6 @@
           <tr><td><code>20260829000000_ecosystem_subdomain_slugs.sql</code></td><td>Ecosystem subdomain slug infrastructure</td></tr>
           <tr><td><code>20260829000001_super_admin_auto_approve_ecosystem_admins.sql</code></td><td>Super-admin-created ecosystem admins are auto-approved</td></tr>
           <tr><td><code>20260902000001_rls_ecosystem_select_returning_safe.sql</code></td><td>PG17 fix: <code>ecosystems_select_visible</code> policy evaluates row-native columns instead of re-reading the same table (INSERT/UPDATE&hellip;RETURNING safe)</td></tr>
-          <tr><td><code>20260907000001_ecosystem_theme_and_badges.sql</code></td><td>Per-ecosystem theme columns (dominant colour, supporting tone, accent) + a public <code>ecosystem-badges</code> storage bucket for school crests</td></tr>
-          <tr><td><code>20260909000000_pgcrypto_schema_search_path.sql</code></td><td>Resolves <code>pgcrypto</code> from the <code>extensions</code> schema (hosted Supabase) as well as <code>public</code> (local), for <code>admin_create_user</code> and the seed</td></tr>
-          <tr><td><code>20260921000000_national_curriculum_and_implementation.sql</code></td><td>National curriculum compliance, first pass: platform reference tables + a P1-specific <code>national_themes</code>/<code>national_subthemes</code>/<code>national_competences</code> chain + the school-implementation layer (adoptions, weekly plans, timetable, decisions)</td></tr>
-          <tr><td><code>20260922000000_flexible_curriculum_nodes.sql</code></td><td>Replaced the P1-only theme chain with one generic <code>curriculum_nodes</code> tree, typed by a plain <code>node_type</code> column (no lookup table); retired the empty, unused <code>curriculum_nodes</code>/<code>node_types</code> scaffold from <code>20260825000003</code> that this name collided with</td></tr>
         </tbody>
       </table>
 
@@ -149,17 +124,6 @@
         <li><strong>Invitation code</strong> <code>MATHLAB</code> (learner, max 50 uses).</li>
         <li><strong>Published curriculum</strong> &ldquo;Primary Mathematics&rdquo; (2026): 3 goals, 3 grades, terms, 6 topics, 12 learning objectives, 4 published self-paced lessons (each with overview page, 3 activities, 1 assessment), 5 shared resources, 6 teaching-guidance notes, 3 unit projects, 2 curriculum evaluations (Term 1: 72.5%, Term 2: 78%).</li>
         <li><strong>Syllabus</strong>: pass mark 50%, breakdown Homework 20% / Mid-term 30% / Final exam 50%.</li>
-      </ul>
-
-      <h3>National curriculum seeds (<code>supabase/seeds/</code>)</h3>
-      <p>
-        Three additional seed files, listed in <code>supabase/config.toml</code>'s
-        <code>db.seed.sql_paths</code> after <code>seed.sql</code>:
-      </p>
-      <ul>
-        <li><code>national_curriculum_p1.sql</code> &mdash; Uganda's NCDC Primary&nbsp;1 curriculum structure: 12 themes, 36 sub-themes, aims, the 40-period weekly allocation, rules, and the Christian/Islamic RE + PE schedules. Idempotent per curriculum slug.</li>
-        <li><code>national_curriculum_p1_themes_2_12.sql</code> &mdash; the full competences and assessment guidelines for all 12 themes (1,574 competences, 244 guidelines total), transcribed from the NCDC document.</li>
-        <li><code>national_curriculum_p1_demo_school.sql</code> &mdash; &ldquo;A Sample School Ecosystem&rdquo; adopts the curriculum and has a realistic implementation in progress: one week approved, one ready, one still a draft (every status visible), a fully valid <strong>published</strong> 40-period timetable, and all four school decisions recorded.</li>
       </ul>
 
       <h2 id="workflow">Schema change workflow</h2>

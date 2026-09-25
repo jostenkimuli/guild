@@ -42,6 +42,11 @@ import type { NationalCurriculum } from "@/lib/curriculum/national";
 
 export function CurriculumEditor({ curriculum }: { curriculum: NationalCurriculum }) {
   const total = curriculum.allocations.reduce((sum, a) => sum + a.periods, 0);
+  // Only Lower Primary (P1-P3) is thematic -- signalled by at least one
+  // strand marked "runs through every theme". The other levels are
+  // subject-based (or, for Pre-primary, a flat list): they have no theme
+  // tree, and offering one would invite building the wrong shape for them.
+  const isThematic = curriculum.strands.some((s) => s.is_thematic);
   return (
     <div className="space-y-6">
       <div>
@@ -55,9 +60,9 @@ export function CurriculumEditor({ curriculum }: { curriculum: NationalCurriculu
         </p>
       </div>
 
-      <Tabs defaultValue="tree">
+      <Tabs defaultValue={isThematic ? "tree" : "strands"}>
         <TabsList className="h-auto flex-wrap">
-          <TabsTrigger value="tree">Curriculum tree</TabsTrigger>
+          {isThematic ? <TabsTrigger value="tree">Curriculum tree</TabsTrigger> : null}
           <TabsTrigger value="strands">Learning areas</TabsTrigger>
           <TabsTrigger value="aims">Aims</TabsTrigger>
           <TabsTrigger value="allocations">Weekly periods ({total})</TabsTrigger>
@@ -66,9 +71,11 @@ export function CurriculumEditor({ curriculum }: { curriculum: NationalCurriculu
           <TabsTrigger value="overview">Overview</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tree" className="pt-3">
-          <TreeTab curriculum={curriculum} />
-        </TabsContent>
+        {isThematic ? (
+          <TabsContent value="tree" className="pt-3">
+            <TreeTab curriculum={curriculum} />
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="strands" className="pt-3">
           <StrandsTab curriculum={curriculum} />

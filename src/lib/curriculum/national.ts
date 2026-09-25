@@ -137,6 +137,7 @@ export type AdminCurriculumSummary = {
   edition: string;
   created_at: string;
   theme_count: number;
+  strand_count: number;
 };
 
 /** Every national curriculum, for the platform-admin authoring list. */
@@ -146,7 +147,7 @@ export async function listAllNationalCurricula(
   const { data } = await supabase
     .from("national_curricula")
     .select(
-      "id, slug, title, class_level, ecosystem_type, authority, edition, created_at, curriculum_nodes(node_type)",
+      "id, slug, title, class_level, ecosystem_type, authority, edition, created_at, curriculum_nodes(node_type), national_strands(id)",
     )
     .order("created_at", { ascending: false });
   return (data ?? []).map((row) => ({
@@ -159,6 +160,7 @@ export async function listAllNationalCurricula(
     edition: row.edition,
     created_at: row.created_at,
     theme_count: row.curriculum_nodes.filter((n) => n.node_type === "theme").length,
+    strand_count: row.national_strands.length,
   }));
 }
 
