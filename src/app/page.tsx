@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
@@ -10,6 +11,7 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let spaceAdminWithoutSpaces = false;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -18,6 +20,9 @@ export default async function Home() {
       .maybeSingle();
     const role = profile?.role;
     const status = profile?.status;
+    if (profile && status !== "approved") {
+      redirect("/approval-pending");
+    }
     if (
       (role === "super_admin" || role === "program_admin") &&
       status === "approved"
@@ -30,25 +35,43 @@ export default async function Home() {
     if (role === "space_admin" && status === "approved") {
       const { data: membership } = await supabase
         .from("space_memberships")
-        .select("spaces!inner(slug)")
+        .select("spaces!inner(id, slug)")
         .eq("user_id", user.id)
+        .eq("role", "admin")
+        .order("joined_at", { ascending: true })
         .limit(1)
         .maybeSingle();
-      if (membership?.spaces?.slug) {
-        redirect(`/spaces/${membership.spaces.slug}`);
+      if (membership?.spaces) {
+        redirect(`/spaces/${membership.spaces.slug ?? membership.spaces.id}`);
       }
+      spaceAdminWithoutSpaces = true;
     }
     if (role === "member" && status === "approved") {
       const { data: membership } = await supabase
         .from("space_memberships")
-        .select("spaces!inner(slug)")
+        .select("spaces!inner(id, slug)")
         .eq("user_id", user.id)
+        .order("joined_at", { ascending: true })
         .limit(1)
         .maybeSingle();
-      if (membership?.spaces?.slug) {
-        redirect(`/spaces/${membership.spaces.slug}`);
+      if (membership?.spaces) {
+        redirect(`/spaces/${membership.spaces.slug ?? membership.spaces.id}`);
       }
     }
+  }
+
+  if (spaceAdminWithoutSpaces) {
+    return (
+      <main className="mx-auto flex min-h-full w-full max-w-xl flex-col items-center justify-center gap-4 p-6 text-center">
+        <h1 className="text-xl font-semibold">No spaces assigned yet</h1>
+        <p className="text-sm text-muted-foreground">
+          Your space-admin account is active. Ask the ecosystem administrator to assign you to a space, then refresh this page.
+        </p>
+        <form action={signOut}>
+          <Button type="submit" variant="outline">Sign out</Button>
+        </form>
+      </main>
+    );
   }
 
   return (

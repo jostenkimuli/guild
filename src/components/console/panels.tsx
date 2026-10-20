@@ -1,13 +1,4 @@
 import type { ReactNode } from "react";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function ConsolePanel({
@@ -18,7 +9,6 @@ export function ConsolePanel({
   footer,
   className,
   contentClassName,
-  footerClassName,
 }: {
   id?: string;
   title: string;
@@ -30,21 +20,27 @@ export function ConsolePanel({
   footerClassName?: string;
 }) {
   return (
-    <Card id={id} className={cn("scroll-mt-20", className)}>
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
-        {description ? <CardDescription>{description}</CardDescription> : null}
-      </CardHeader>
-      <CardContent className={contentClassName}>{children}</CardContent>
+    <div
+      id={id}
+      className={cn(
+        "scroll-mt-20 rounded-lg border border-outline-variant bg-surface-container-lowest",
+        className,
+      )}
+    >
+      <div className="border-b border-outline-variant px-4 py-3">
+        <p className="text-sm font-semibold text-on-surface">{title}</p>
+        {description ? (
+          <p className="mt-0.5 text-xs text-on-surface-variant">{description}</p>
+        ) : null}
+      </div>
+      <div className={cn("px-4 py-3", contentClassName)}>{children}</div>
       {footer ? (
-        <CardFooter className={cn("justify-end", footerClassName)}>
-          {footer}
-        </CardFooter>
+        <div className="flex justify-end border-t border-outline-variant px-4 py-3">{footer}</div>
       ) : null}
-    </Card>
+    </div>
   );
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
+  return <p className="text-sm text-on-surface-variant">{children}</p>;
 }

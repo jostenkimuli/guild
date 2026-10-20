@@ -1,8 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
-import { ConsolePanel, EmptyState } from "@/components/console/panels";
 import { SpaceCard } from "@/components/console/spaces";
-import { CreateSpaceButton } from "@/components/console/create-space-button";
+import { CreateSpaceDialog } from "@/components/console/create-space-dialog";
 import { createClient } from "@/lib/supabase/server";
 import {
   SPACE_TYPE_ORDER,
@@ -47,8 +46,8 @@ export default async function EcosystemSpacesPage({
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold tracking-tight">Spaces</h2>
-        <CreateSpaceButton ecosystemId={ecosystem.id} />
+        <h2 className="text-lg font-semibold tracking-tight text-on-surface">Spaces</h2>
+        <CreateSpaceDialog ecosystemId={ecosystem.id} />
       </div>
 
       {SPACE_TYPE_ORDER.map((type) => {
@@ -56,7 +55,7 @@ export default async function EcosystemSpacesPage({
         if (!items || items.length === 0) return null;
         return (
           <div key={type} className="space-y-3">
-            <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">
               {spaceTypePlural(type)}
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -69,11 +68,13 @@ export default async function EcosystemSpacesPage({
       })}
 
       {(!spaces || spaces.length === 0) ? (
-        <ConsolePanel title="No spaces yet">
-          <EmptyState>
-            Create your first space to get started.
-          </EmptyState>
-        </ConsolePanel>
+        <div className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-10 text-center">
+          <p className="text-sm font-medium text-on-surface">No spaces yet</p>
+          <p className="mt-1 text-xs text-on-surface-variant">Create your first space to get started.</p>
+          <div className="mt-4 flex justify-center">
+            <CreateSpaceDialog ecosystemId={ecosystem.id} />
+          </div>
+        </div>
       ) : null}
     </section>
   );

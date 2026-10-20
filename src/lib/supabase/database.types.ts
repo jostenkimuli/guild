@@ -1980,6 +1980,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_space_admin: {
+        Args: {
+          p_ecosystem_id: string
+          p_email: string
+          p_full_name: string
+          p_space_id: string
+          p_temp_password: string
+        }
+        Returns: string
+      }
       admin_create_user: {
         Args: {
           p_ecosystem_id?: string
@@ -2047,6 +2057,15 @@ export type Database = {
       is_platform_admin: { Args: never; Returns: boolean }
       lesson_curriculum: { Args: { p_lesson_id: string }; Returns: string }
       lesson_space: { Args: { p_lesson_id: string }; Returns: string }
+      manage_space_membership: {
+        Args: {
+          p_role: Database["public"]["Enums"]["user_space_role"]
+          p_source_space_id?: string
+          p_target_space_id?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       save_implementation_timetable: {
         Args: {
           p_ecosystem_id: string
@@ -2072,6 +2091,14 @@ export type Database = {
           p_teacher_id?: string
         }
         Returns: string
+      }
+      set_space_admin_assignments: {
+        Args: {
+          p_ecosystem_id: string
+          p_space_ids: string[]
+          p_user_id: string
+        }
+        Returns: undefined
       }
       term_curriculum: { Args: { p_term_id: string }; Returns: string }
       topic_curriculum: { Args: { p_topic_id: string }; Returns: string }

@@ -62,9 +62,9 @@ priority (P0/P1/P2)`.
 
 ## Epic 1 — Ecosystems & Spaces (Phase 1, P0)
 
-- **E-1** — Create an ecosystem — As a founder, I want to create an ecosystem
-  with a name, type (academic/corporate/geographic), and location scale, so
-  that it can host spaces. (S, P0)
+- **E-1** — Onboard a school ecosystem — As a programme administrator, I want
+  to create a school with its basic details and assign an ecosystem admin, so
+  that the school can complete its profile and host spaces. (S, P0)
 - **E-2** — Join an ecosystem — As a user, I want to join an ecosystem via
   invite, so that I can see its spaces. (S, P0)
 - **S-1** — Create a space — As a teacher, I want to create a classroom inside
@@ -75,8 +75,11 @@ priority (P0/P1/P2)`.
   code or open join, so that I become a member. (S, P0)
 - **S-4** — Space home page — As a member, I want a space page with its
   mission, roster, and recent activity, so that I can orient quickly. (M, P0)
-- **S-5** — Space membership — As an owner, I want to manage roles and remove
-  members, so that the space stays healthy. (M, P1)
+- **S-5** — Space membership — As an ecosystem or space admin, I want to assign
+  existing members to spaces, change their in-space roles, move or remove them,
+  and assign space admins to the spaces they manage, so that each roster is
+  accurate. New teachers and learners can join through a role-specific code.
+  (M, P1)
 
 ## Epic 2 — Content & Learning (Phase 1, P0)
 
@@ -182,7 +185,11 @@ for the schema.
 ## Notes for sprint planning
 
 - Sprint 0 (done) = scaffold: stack, auth, schema, green build, agile process.
-- Schema status: `ecosystems`, `spaces`, `space_memberships` + enums exist;
+- Schema status: schools are represented by `ecosystems`; programme scope is
+  currently global (there is no `programmes` table). Approved programme admins
+  can onboard school ecosystems; assigned ecosystem admins complete the
+  profile. `spaces` still represent classes/departments. `space_memberships` +
+  enums exist;
   Sprint 1 added the admin layer (`ecosystem_staff`, `invitation_codes`,
   `profiles.role`/`status`, super admin + delegation); Sprint 2 added the
   curriculum structure (`curricula` + `curriculum_goals`, `grades` → `terms`

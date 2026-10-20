@@ -43,11 +43,83 @@ export async function proxy(request: NextRequest) {
   // sign-in to that ecosystem via its own host cookies.
   const ecosystemSlug = ecosystemSlugFromHost(request.headers.get("host"));
   if (ecosystemSlug) {
+    const isRoot = url.pathname === "/";
+    const isSpacesIndex = url.pathname === "/spaces";
+    const isSpaceRoute = url.pathname.startsWith("/spaces/");
     const consoleSegment = ["/staff", "/members", "/students"].some(
       (segment) =>
         url.pathname === segment || url.pathname.startsWith(`${segment}/`),
     );
-    if (url.pathname === "/" || url.pathname === "/spaces" || consoleSegment) {
+    if (isRoot || isSpacesIndex || isSpaceRoute || consoleSegment) {
+      let profile: { role: string; status: string } | null = null;
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("role, status")
+          .eq("id", user.id)
+          .maybeSingle();
+        profile = data;
+
+        if (profile && profile.status !== "approved") {
+          return NextResponse.rewrite(
+            new URL("/approval-pending", request.url),
+          );
+        }
+      }
+
+      // Space routes are shared by ecosystem and space admins. On an
+      // ecosystem subdomain, keep the school host while serving the regular
+      // space dashboard and its members/teachers pages.
+      if (isSpaceRoute) return supabaseResponse;
+
+      if (isSpacesIndex && profile?.role !== "ecosystem_admin") {
+        return supabaseResponse;
+      }
+
+      if (isRoot && profile?.role === "space_admin") {
+        const { data: memberships } = await supabase
+          .from("space_memberships")
+          .select("spaces!inner(id, slug, ecosystems!inner(slug))")
+          .eq("user_id", user!.id)
+          .eq("role", "admin");
+        const space = ((memberships ?? []) as unknown as Array<{
+          spaces?:
+            | {
+                id: string;
+                slug: string | null;
+                ecosystems?: { slug: string } | { slug: string }[] | null;
+              }
+            | {
+                id: string;
+                slug: string | null;
+                ecosystems?: { slug: string } | { slug: string }[] | null;
+              }[]
+            | null;
+        }>)
+          .flatMap((membership) => {
+            const relatedSpaces = membership.spaces;
+            return Array.isArray(relatedSpaces)
+              ? relatedSpaces
+              : relatedSpaces
+                ? [relatedSpaces]
+                : [];
+          })
+          .find((candidate) => {
+            const relatedEcosystems = candidate.ecosystems;
+            return Array.isArray(relatedEcosystems)
+              ? relatedEcosystems.some((ecosystem) => ecosystem.slug === ecosystemSlug)
+              : relatedEcosystems?.slug === ecosystemSlug;
+          });
+        const destination = space
+          ? `/spaces/${space.slug ?? space.id}`
+          : "/spaces";
+        return NextResponse.rewrite(new URL(destination, request.url));
+      }
+
+      if (profile && profile.role !== "ecosystem_admin") {
+        return NextResponse.rewrite(new URL("/login", request.url));
+      }
+
       const scopedPath = url.pathname === "/" ? "" : url.pathname;
       return NextResponse.rewrite(
         new URL(`/ecosystem/${ecosystemSlug}${scopedPath}`, request.url),
@@ -87,6 +159,9 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL("/", request.url));
       }
       return NextResponse.redirect(new URL("/ecosystem", request.url));
+    }
+    if (status && status !== "approved") {
+      return NextResponse.redirect(new URL("/approval-pending", request.url));
     }
     return NextResponse.redirect(new URL("/", request.url));
   }

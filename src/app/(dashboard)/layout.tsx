@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 
 import {
@@ -8,10 +9,11 @@ import {
   type SidebarHeader,
 } from "@/components/dashboard-sidebar";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { signOut } from "@/app/actions/auth";
 import { EcosystemThemeProvider } from "@/components/ecosystem-theme-provider";
 import { createClient } from "@/lib/supabase/server";
+import { ecosystemSlugFromHost } from "@/lib/subdomain";
+import { SchoolSubdomainRedirect } from "@/components/console/school-subdomain-redirect";
 import { ecosystemTypeLabel, isSchoolType } from "@/lib/ecosystems";
 import {
   themeConfigFromRow,
@@ -54,7 +56,16 @@ export default async function DashboardRootLayout({
   ) {
     groups.push({
       label: "Overview",
-      items: [{ href: "/admin", label: "Admin" }],
+      items: [
+        { href: "/admin", label: "Overview" },
+      ],
+    });
+    groups.push({
+      label: "People",
+      items: [
+        ...(role === "super_admin" ? [{ href: "/admin/program-admins", label: "Program admins" }] : []),
+        { href: "/admin/ecosystem-admins", label: "Ecosystem admins" },
+      ],
     });
     groups.push({
       label: "Curriculum",
@@ -63,13 +74,20 @@ export default async function DashboardRootLayout({
   }
 
   if (role === "ecosystem_admin" && profile?.status === "approved") {
-    const { data: ecosystem } = await supabase
-      .from("ecosystems")
-      .select(
-        "id, slug, name, type, vision, calendar_year, badge_url, theme_primary, theme_supporting, theme_accent",
-      )
-      .eq("created_by", user.id)
+    const { data: staffAssignment } = await supabase
+      .from("ecosystem_staff")
+      .select("ecosystem_id")
+      .eq("user_id", user.id)
+      .eq("role", "ecosystem_admin")
+      .limit(1)
       .maybeSingle();
+    const { data: ecosystem } = staffAssignment
+      ? await supabase
+          .from("ecosystems")
+          .select("id, slug, name, type, vision, calendar_year, badge_url, theme_primary, theme_supporting, theme_accent")
+          .eq("id", staffAssignment.ecosystem_id)
+          .maybeSingle()
+      : { data: null };
     if (ecosystem) {
       const school = isSchoolType(ecosystem.type);
       if (school) themeConfig = themeConfigFromRow(ecosystem);
@@ -105,14 +123,20 @@ export default async function DashboardRootLayout({
         .eq("ecosystem_id", ecosystem.id)
         .order("type");
 
-      const spaceItems = (spaces ?? []).map((space) => ({
+      const allSpaces = spaces ?? [];
+      const previewSpaces = allSpaces.slice(0, 5);
+      const spaceItems = previewSpaces.map((space) => ({
         href: `/spaces/${space.slug ?? space.id}`,
         label: space.name,
       }));
-      if (spaceItems.length > 0) {
+      if (allSpaces.length > 0) {
         groups.push({
-          label: school ? "Classes" : "Departments",
+          label: school ? "Classes" : "Spaces",
           items: spaceItems,
+          ...(allSpaces.length > 5 && {
+            viewAllHref: `/ecosystem/${ecosystem.slug}/spaces`,
+            viewAllLabel: `All ${allSpaces.length} spaces`,
+          }),
         });
       }
 
@@ -141,65 +165,93 @@ export default async function DashboardRootLayout({
     const { data: memberships } = await supabase
       .from("space_memberships")
       .select("spaces(id, name, slug, type, ecosystem_id)")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .order("joined_at", { ascending: true });
 
     const spaces = (memberships ?? [])
       .map((m) => m.spaces)
       .filter((s): s is NonNullable<typeof s> => s !== null);
 
     if (spaces.length > 0) {
-      const ecosystemId = spaces[0].ecosystem_id;
-      const { data: ecosystem } = await supabase
+      const currentSchoolSlug = ecosystemSlugFromHost(
+        (await headers()).get("host"),
+      );
+      const ecosystemIds = [...new Set(spaces.map((space) => space.ecosystem_id))];
+      const { data: ecosystems } = await supabase
         .from("ecosystems")
-        .select("name, type, vision, calendar_year")
-        .eq("id", ecosystemId)
-        .maybeSingle();
+        .select("slug, name, type, vision, calendar_year, badge_url, theme_primary, theme_supporting, theme_accent")
+        .in("id", ecosystemIds);
+      const ecosystem =
+        ecosystems?.find((item) => item.slug === currentSchoolSlug) ??
+        ecosystems?.[0] ??
+        null;
 
       if (ecosystem) {
+        if (currentSchoolSlug !== ecosystem.slug) {
+          return <SchoolSubdomainRedirect schoolSlug={ecosystem.slug} />;
+        }
+
         header = {
           title: ecosystem.name,
           subtitle: ecosystem.vision ?? undefined,
           badge: ecosystemTypeLabel(ecosystem.type),
           calendarYear: ecosystem.calendar_year,
+          crestUrl: isSchoolType(ecosystem.type)
+            ? ecosystem.badge_url
+            : undefined,
         };
+        if (isSchoolType(ecosystem.type)) {
+          themeConfig = themeConfigFromRow(ecosystem);
+        }
       }
 
-      groups.push({
-        label: "Overview",
-        items: spaces.map((space) => ({
-          href: `/spaces/${space.slug ?? space.id}`,
-          label: "Dashboard",
-        })),
-      });
+      const previewSpaces = spaces.slice(0, 5);
 
       groups.push({
-        label: "Administration",
-        items: [
-          ...spaces.map((space) => ({
-            href: `/spaces/${space.slug ?? space.id}/members`,
-            label: "Members",
-          })),
-          ...spaces.map((space) => ({
-            href: `/spaces/${space.slug ?? space.id}/teachers`,
-            label: "Teachers",
-          })),
-        ],
+        label: "Spaces",
+        items: previewSpaces.map((space) => ({
+          href: `/spaces/${space.slug ?? space.id}`,
+          label: space.name,
+        })),
+        ...(spaces.length > 5 && {
+          viewAllHref: `/spaces`,
+          viewAllLabel: `All ${spaces.length} spaces`,
+        }),
       });
+
+      if (previewSpaces.length > 0) {
+        groups.push({
+          label: "Administration",
+          items: previewSpaces.flatMap((space) => {
+            const spacePath = `/spaces/${space.slug ?? space.id}`;
+            return [
+              { href: `${spacePath}/members`, label: `${space.name}: Members` },
+              { href: `${spacePath}/teachers`, label: `${space.name}: Teachers` },
+            ];
+          }),
+        });
+      }
     }
   }
 
   if (role === "member") {
     const { data: memberships } = await supabase
       .from("space_memberships")
-      .select("spaces(id, slug)")
-      .limit(1)
-      .maybeSingle();
+      .select("spaces(id, name, slug)")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: true });
 
-    const space = memberships?.spaces;
-    if (space) {
+    const spaces = (memberships ?? [])
+      .map((membership) => membership.spaces)
+      .filter((space): space is NonNullable<typeof space> => space !== null);
+    if (spaces.length > 0) {
       groups.push({
-        label: "Overview",
-        items: [{ href: `/spaces/${space.slug ?? space.id}`, label: "Dashboard" }],
+        label: "My spaces",
+        items: spaces.map((space) => ({
+          href: `/spaces/${space.slug ?? space.id}`,
+          label: space.name ?? "Space",
+        })),
       });
     }
   }
@@ -211,34 +263,50 @@ export default async function DashboardRootLayout({
       <div className="flex min-h-dvh">
       <DashboardSidebar header={header} groups={groups} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-b bg-background/95 backdrop-blur">
-          <div className="mx-auto w-full max-w-5xl px-4 pt-4 sm:px-6">
-            <div className="flex items-center justify-between gap-4">
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-                TheGuild
-              </h1>
+        <header className="sticky top-0 z-40 border-b border-outline-variant bg-surface-container-lowest/95 backdrop-blur">
+          <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+            <div className="flex h-14 items-center justify-between gap-4">
+              {/* Brand / role context */}
+              <Link href="/" className="flex items-center gap-2 sm:hidden">
+                {header?.crestUrl ? (
+                  <img
+                    src={header.crestUrl}
+                    alt={`${header.title} crest`}
+                    className="size-7 rounded-full object-cover"
+                  />
+                ) : null}
+                <span className="text-sm font-semibold tracking-tight text-on-surface">
+                  {header?.title ?? "TheGuild"}
+                </span>
+              </Link>
+              <div className="hidden sm:block" />
+
+              {/* Right side */}
               <div className="flex items-center gap-3">
                 <div className="group/avatar-chip relative">
-                  <Avatar className="cursor-default">
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="pointer-events-none absolute top-full right-0 z-50 mt-2 rounded-md border bg-popover px-3 py-1.5 text-xs whitespace-nowrap text-popover-foreground opacity-0 shadow-md transition-opacity group-hover/avatar-chip:opacity-100">
-                    {user.email}
+                  <div className="flex size-8 cursor-default items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    {initials}
+                  </div>
+                  <div className="pointer-events-none absolute top-full right-0 z-50 mt-2 min-w-max rounded-md border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs text-on-surface opacity-0 shadow-md transition-opacity group-hover/avatar-chip:opacity-100">
+                    <p className="font-medium">{profile?.display_name ?? ""}</p>
+                    <p className="text-on-surface-variant">{user.email}</p>
                   </div>
                 </div>
                 <form action={signOut} className="sm:hidden">
-                  <Button type="submit" variant="ghost" size="sm">
+                  <Button type="submit" variant="ghost" size="sm" className="text-on-surface-variant">
                     Sign out
                   </Button>
                 </form>
               </div>
             </div>
-            <nav className="mt-3 flex gap-2 overflow-x-auto pb-3 sm:hidden">
+
+            {/* Mobile nav */}
+            <nav className="flex gap-1.5 overflow-x-auto pb-3 sm:hidden">
               {mobileItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="whitespace-nowrap rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground"
+                  className="whitespace-nowrap rounded-full bg-surface-container px-3 py-1 text-xs font-medium text-on-surface-variant hover:text-on-surface"
                 >
                   {item.label}
                 </Link>

@@ -7,7 +7,9 @@ should stay in lockstep with it.
 ## 1. Main entities (the nouns)
 
 - **Ecosystem** — the highest-level boundary (a university, a corporation, an
-  alliance of countries). Hosts Spaces and Users.
+  school, or an alliance of countries). A school is currently represented by
+  an Ecosystem; there is no separate School or Programme table. Hosts Spaces
+  and Users.
 - **User** — any individual on the platform, categorized by fluid roles
   (Teacher, Learner, Mentor, Industry Partner).
 - **Space** — a sub-community within an Ecosystem where specific engagement
@@ -67,7 +69,7 @@ should stay in lockstep with it.
 | Ecosystem | `ecosystems` | Sprint 1; `raw_ecosystem_meta_data` jsonb for school metadata |
 | Ecosystem staff | `ecosystem_staff` | Sprint 1; who administers an ecosystem |
 | Space | `spaces` | Sprint 1 (replaces old `communities`) |
-| Space membership | `space_memberships` | Sprint 1 (replaces old `community_members`); per-space roles |
+| Space membership | `space_memberships` | Sprint 1 (replaces old `community_members`); per-space roles (`admin`, `teacher`, `learner`, `mentor`, `collaborator`) |
 | Invitation codes | `invitation_codes` | Sprint 1; signup-with-code joins a space |
 | Curriculum | `curricula` (+ `curriculum_goals`) | Sprint 2; one per Space, organised as a tree |
 | Academic tree | `grades` → `terms` → `units` → `topics` | Sprint 2; the structure under a curriculum |
@@ -79,6 +81,14 @@ should stay in lockstep with it.
 | School implementation | `school_curriculum_adoptions`, `implementation_weeks` (+ strand plans), `implementation_timetables` (+ slots), `school_decisions` | Sprint 2 addendum; see §7 |
 | Challenge | — | returns as redesigned table (Sprint 5) |
 | Project | — | returns as redesigned table (Sprint 6) |
+
+Platform roles on `profiles` control account administration and approval.
+Teaching and learning roles belong to `space_memberships`, so one person can
+be a teacher in one space and a learner in another. A `space_admin` account is
+linked to its ecosystem through `ecosystem_staff` and to each managed space
+through an `admin` membership. Invitation codes target one space and assign a
+teacher or learner role at signup. Ecosystem admins can also assign existing
+members to spaces, move them, change their role, or remove their membership.
 
 ### Curriculum structure (Sprint 2)
 
@@ -158,14 +168,17 @@ publish until every national period allocation is placed.
 ### Approval chain (Sprint 1)
 
 - **Super admin** creates program admins (pending) and approves them.
-- **Program admin** (approved) creates ecosystem admins (pending).
+- **Program admin** (approved) onboards a school Ecosystem, then creates an
+  ecosystem-admin account scoped to it (pending).
 - Ecosystem-admin approvals always land with the **super admin**, who can
   approve directly or delegate to a program admin
   (`profiles.can_approve_ecosystem_admins`); a delegated program admin then
   approves them.
-- **Ecosystem admin** (approved) creates their ecosystem and space admins
-  (auto-approved).
-- **Space admin** creates spaces and invitation codes; signup with a code adds
-  the subscriber as a member.
+- **Ecosystem admin** (approved) completes the assigned school's profile,
+  creates spaces, and creates approved space-admin accounts assigned to
+  specific spaces.
+- **Space admin** sees assigned spaces and creates teacher or learner
+  invitation codes for those spaces; signup with a code creates the matching
+  space membership.
 
 All migrations land in the sprint that needs them (see `SPRINT_PLAN.md`).

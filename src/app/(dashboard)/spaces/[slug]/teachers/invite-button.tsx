@@ -9,7 +9,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { CreateInvitationCodeForm } from "@/components/console/forms";
 
@@ -24,9 +23,9 @@ export function InviteTeachersButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button type="button">Invite teacher</Button>
-      </DialogTrigger>
+      <Button type="button" onClick={() => setOpen(true)}>
+        Invite teacher
+      </Button>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Invite a teacher</DialogTitle>
@@ -38,7 +37,6 @@ export function InviteTeachersButton({
           spaces={[{ id: spaceId, name: spaceName, grades: [] }]}
           mode="teacher"
           defaultSpaceId={spaceId}
-          onSuccess={() => setOpen(false)}
         />
       </DialogContent>
     </Dialog>

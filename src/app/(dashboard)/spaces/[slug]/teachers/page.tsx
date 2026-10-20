@@ -27,7 +27,7 @@ export default async function SpaceTeachersPage({
 
   const { data: space } = await supabase
     .from("spaces")
-    .select("id, name, slug")
+    .select("id, name, slug, ecosystem_id")
     .eq("slug", slug)
     .maybeSingle();
   if (!space) notFound();
@@ -39,7 +39,21 @@ export default async function SpaceTeachersPage({
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const isSpaceAdmin = membership?.role === "admin";
+  const [{ data: profile }, { data: staff }] = await Promise.all([
+    supabase.from("profiles").select("role, status").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("ecosystem_staff")
+      .select("role")
+      .eq("ecosystem_id", space.ecosystem_id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
+
+  const isSpaceAdmin = membership?.role === "admin" || (
+    profile?.role === "ecosystem_admin" &&
+    profile.status === "approved" &&
+    staff?.role === "ecosystem_admin"
+  );
   if (!isSpaceAdmin) redirect(`/spaces/${slug}`);
 
   const { data: teacherRows } = await supabase

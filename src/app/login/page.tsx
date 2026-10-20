@@ -14,10 +14,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { APP_HOST } from "@/lib/subdomain";
-import { navigateToEcosystemSubdomain } from "@/lib/subdomain-session";
+import { APP_HOST, ecosystemSlugFromHost } from "@/lib/subdomain";
+import {
+  navigateToAppHost,
+  navigateToEcosystemSubdomain,
+} from "@/lib/subdomain-session";
 
 type Mode = "signin" | "signup";
+
+function ecosystemOrigin(slug: string): string {
+  const port = window.location.port ? `:${window.location.port}` : "";
+  return `${window.location.protocol}//${slug}.${APP_HOST}${port}`;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,6 +46,47 @@ export default function LoginPage() {
         window.location.hostname !== APP_HOST &&
         window.location.hostname.endsWith(`.${APP_HOST}`);
 
+      async function routeSubdomainSession(userId: string) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, status")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (profile && profile.status !== "approved") {
+          router.replace("/approval-pending");
+          router.refresh();
+          return;
+        }
+        if (profile?.role === "ecosystem_admin") {
+          router.replace("/");
+          router.refresh();
+          return;
+        }
+        if (profile?.role === "space_admin") {
+          const { data: membership } = await supabase
+            .from("space_memberships")
+            .select("spaces!inner(id, slug, ecosystems!inner(slug))")
+            .eq("user_id", userId)
+            .eq("role", "admin")
+            .order("joined_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          const space = membership?.spaces;
+          const schoolSlug = space?.ecosystems?.slug;
+          if (space && schoolSlug) {
+            if (ecosystemSlugFromHost(window.location.hostname) === schoolSlug) {
+              router.replace(`/spaces/${space.slug ?? space.id}`);
+              router.refresh();
+            } else {
+              await navigateToEcosystemSubdomain(ecosystemOrigin(schoolSlug));
+            }
+            return;
+          }
+        }
+        await navigateToAppHost();
+      }
+
       const params = new URLSearchParams(window.location.hash.slice(1));
       const accessToken = params.get("access_token");
       const refreshToken = params.get("refresh_token");
@@ -53,8 +102,14 @@ export default function LoginPage() {
             window.location.pathname + window.location.search,
           );
           if (!cancelled) {
-            router.replace("/");
-            router.refresh();
+            if (isEcosystemSubdomain) {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) await routeSubdomainSession(user.id);
+              else router.replace("/login");
+            } else {
+              router.replace("/");
+              router.refresh();
+            }
           }
           return;
         }
@@ -65,8 +120,7 @@ export default function LoginPage() {
           data: { session },
         } = await supabase.auth.getSession();
         if (session) {
-          router.replace("/");
-          router.refresh();
+          await routeSubdomainSession(session.user.id);
         }
       }
     }
@@ -107,6 +161,22 @@ export default function LoginPage() {
           .select("role, status, must_change_password")
           .eq("id", uid)
           .single();
+        if (profile && profile.status !== "approved") {
+          router.replace("/approval-pending");
+          router.refresh();
+          return;
+        }
+        const isEcosystemSubdomain =
+          window.location.hostname.toLowerCase() !== APP_HOST &&
+          window.location.hostname.toLowerCase().endsWith(`.${APP_HOST}`);
+        if (
+          isEcosystemSubdomain &&
+          profile?.role !== "ecosystem_admin" &&
+          profile?.role !== "space_admin"
+        ) {
+          await navigateToAppHost();
+          return;
+        }
         if (profile?.must_change_password) {
           router.push("/setup-password");
           router.refresh();
@@ -153,14 +223,23 @@ export default function LoginPage() {
         } else if (role === "space_admin" && status === "approved") {
           const { data: membership } = await supabase
             .from("space_memberships")
-            .select("spaces!inner(slug)")
+            .select("spaces!inner(id, slug, ecosystems!inner(slug))")
             .eq("user_id", uid)
+            .eq("role", "admin")
+            .order("joined_at", { ascending: true })
             .limit(1)
             .maybeSingle();
-          if (membership?.spaces?.slug) {
-            router.push(`/spaces/${membership.spaces.slug}`);
+          const space = membership?.spaces;
+          const schoolSlug = space?.ecosystems?.slug;
+          if (space && schoolSlug) {
+            if (ecosystemSlugFromHost(window.location.hostname) === schoolSlug) {
+              router.push(`/spaces/${space.slug ?? space.id}`);
+            } else {
+              await navigateToEcosystemSubdomain(ecosystemOrigin(schoolSlug));
+              return;
+            }
           } else {
-            router.push("/");
+            router.push("/spaces");
           }
         } else {
           router.push("/");

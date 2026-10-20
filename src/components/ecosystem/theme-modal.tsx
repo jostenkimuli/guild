@@ -14,6 +14,8 @@ type EcosystemRow = {
   name: string;
   vision: string | null;
   mission: string | null;
+  description: string | null;
+  raw_ecosystem_meta_data: Record<string, string>;
   badge_url: string | null;
   theme_primary: string | null;
   theme_supporting: string | null;

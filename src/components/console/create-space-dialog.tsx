@@ -12,35 +12,35 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CreateSpaceForm } from "./forms";
-import { spaceTypeLabel, type SpaceType } from "@/lib/ecosystems";
+import { type SpaceType } from "@/lib/ecosystems";
 
 export function CreateSpaceDialog({
   ecosystemId,
   defaultType = "department",
-  triggerLabel,
 }: {
   ecosystemId: string;
   defaultType?: SpaceType;
-  triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const label = spaceTypeLabel(defaultType).toLowerCase();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline">
-          {triggerLabel ?? `Create ${label} space`}
-        </Button>
+        <Button type="button" size="sm">Create space</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create {label} space</DialogTitle>
+          <DialogTitle>Create a space</DialogTitle>
           <DialogDescription>
-            Add a new {label} space to your ecosystem.
+            Spaces are departments, innovation hubs or project groups inside
+            your ecosystem. Space admins manage them day-to-day.
           </DialogDescription>
         </DialogHeader>
-        <CreateSpaceForm ecosystemId={ecosystemId} defaultType={defaultType} />
+        <CreateSpaceForm
+          ecosystemId={ecosystemId}
+          defaultType={defaultType}
+          onSuccess={() => setOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );

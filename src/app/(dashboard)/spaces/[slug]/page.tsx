@@ -1,24 +1,13 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { ecosystemDisplayName } from "@/lib/ecosystems";
 import { SpaceEditDialog } from "@/components/console/space-edit-dialog";
-import { CurriculumDialog } from "@/components/console/curriculum-dialog";
-import { SyllabiSection } from "@/components/spaces/syllabi-section";
-import {
-  approveSpaceEdit,
-  rejectSpaceEdit,
-} from "@/app/actions/console";
+import { SpaceTabs } from "@/components/spaces/space-tabs";
+import { approveSpaceEdit, rejectSpaceEdit } from "@/app/actions/console";
 
 export default async function SpacePage({
   params,
@@ -28,9 +17,7 @@ export default async function SpacePage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: space } = await supabase
@@ -41,15 +28,11 @@ export default async function SpacePage({
 
   if (!space) {
     return (
-      <div className="mx-auto w-full max-w-3xl p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Space not found</CardTitle>
-            <CardDescription>
-              The space you are looking for does not exist.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-6">
+        <p className="text-sm font-medium text-on-surface">Space not found</p>
+        <p className="mt-1 text-sm text-on-surface-variant">
+          The space you are looking for does not exist.
+        </p>
       </div>
     );
   }
@@ -61,17 +44,12 @@ export default async function SpacePage({
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const isMember = membership !== null;
-
   const { data: profile } = await supabase
     .from("profiles")
     .select("role, status")
     .eq("id", user.id)
     .maybeSingle();
 
-  // Ecosystem admins govern every space of their ecosystem: scope the
-  // ecosystem-admin role to this space's ecosystem and treat them as an
-  // in-space admin too.
   const { data: staff } = await supabase
     .from("ecosystem_staff")
     .select("role")
@@ -85,38 +63,38 @@ export default async function SpacePage({
     profile?.status === "approved";
 
   const isSpaceAdmin = membership?.role === "admin" || isEcosystemAdmin;
-const isStaff = membership?.role === "admin" || membership?.role === "teacher" || isEcosystemAdmin;
+  const isStaff =
+    membership?.role === "admin" ||
+    membership?.role === "teacher" ||
+    isEcosystemAdmin;
+  const isMember = membership !== null;
 
+  // Pending edits (ecosystem admin only)
   let pendingEdits: PendingEdit[] = [];
   if (isEcosystemAdmin) {
     const { data } = await supabase
       .from("space_edits")
-      .select(
-        "id, created_at, changes, profiles!space_edits_edited_by_fkey(display_name)",
-      )
+      .select("id, created_at, changes, profiles!space_edits_edited_by_fkey(display_name)")
       .eq("space_id", space.id)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
     pendingEdits = data ?? [];
   }
 
+  // Members
   const { data: memberships } = await supabase
     .from("space_memberships")
-    .select("user_id, role, profiles(display_name)")
+    .select("user_id, role, profiles(display_name, username)")
     .eq("space_id", space.id);
 
-  // Ecosystem admins govern the space from ecosystem_staff; hide them from
-  // the members list.
   const { data: ecosystemAdminRows } = await supabase
     .from("ecosystem_staff")
     .select("user_id")
     .eq("ecosystem_id", space.ecosystem_id)
     .eq("role", "ecosystem_admin");
-  const ecosystemAdminIds = new Set(
-    (ecosystemAdminRows ?? []).map((row) => row.user_id),
-  );
+  const ecosystemAdminIds = new Set((ecosystemAdminRows ?? []).map((r) => r.user_id));
   const visibleMemberships = (memberships ?? []).filter(
-    (membership) => !ecosystemAdminIds.has(membership.user_id),
+    (m) => !ecosystemAdminIds.has(m.user_id),
   );
 
   const { data: latestEdit } = await supabase
@@ -128,211 +106,149 @@ const isStaff = membership?.role === "admin" || membership?.role === "teacher" |
     .limit(1)
     .maybeSingle();
 
-  // Ecosystem admins manage the curriculum: fetch the full tree
-  // (curriculum → grades → terms → units → topics) plus goals.
+  // Curriculum (ecosystem admin only)
   let curricula: CurriculumTreeEntry[] = [];
   if (isEcosystemAdmin) {
     const { data } = await supabase
       .from("curricula")
-      .select(
-        "id, name, year, is_published, curriculum_goals(id, description), grades(name, id, terms(id))",
-      )
+      .select("id, name, year, is_published, curriculum_goals(id, description), grades(name, id, terms(id))")
       .eq("space_id", space.id)
       .order("name", { ascending: true });
     curricula = (data ?? []) as unknown as CurriculumTreeEntry[];
   }
 
-  let staffSyllabi: {
-    id: string;
-    curriculum_id: string;
-    grading_policy: { pass_mark?: number; grade_breakdown: { label: string; weight_pct: number }[] } | null;
-    required_materials: string | null;
-    office_hours: string | null;
-    classroom_expectations: string | null;
-    curricula: { name: string; year: number } | null;
-  }[] = [];
+  // Syllabi (staff only)
+  let staffSyllabi: SyllabiRow[] = [];
   if (isStaff) {
-    const { data: syb } = await supabase
+    const { data } = await supabase
       .from("syllabi")
       .select("id, curriculum_id, grading_policy, required_materials, office_hours, classroom_expectations, curricula(name, year)")
       .eq("curricula.space_id", space.id)
       .order("created_at");
-    staffSyllabi = (syb ?? []) as typeof staffSyllabi;
+    staffSyllabi = (data ?? []) as SyllabiRow[];
   }
 
+  const teacherCount = visibleMemberships.filter((m) => m.role === "teacher").length;
+  const learnerCount = visibleMemberships.filter((m) => m.role === "learner").length;
+
   return (
-    <div className="mx-auto w-full max-w-3xl p-6">
-      <header className="flex items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight text-on-surface">
               {space.name}
             </h1>
-            <Badge variant="secondary">{space.type}</Badge>
+            <Badge variant="secondary" className="capitalize">{space.type.replace("_", " ")}</Badge>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {space.ecosystems
-              ? ecosystemDisplayName(space.ecosystems)
-              : "Unknown ecosystem"}
+          <p className="mt-1 text-sm text-on-surface-variant">
+            {space.ecosystems ? ecosystemDisplayName(space.ecosystems) : ""}
             {space.description ? ` · ${space.description}` : ""}
           </p>
         </div>
-      </header>
+        {isSpaceAdmin && (
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/spaces/${slug}/teachers`}>Teachers</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/spaces/${slug}/members`}>Members</Link>
+            </Button>
+            <SpaceEditDialog space={space} latestEdit={latestEdit} />
+          </div>
+        )}
+      </div>
 
-      {isEcosystemAdmin && pendingEdits.length > 0 ? (
-        <PendingSpaceEdits edits={pendingEdits} />
-      ) : null}
-
-      <SyllabiSection
-        curricula={curricula}
-        syllabiRows={staffSyllabi}
-      />
-
-      {!isMember && !isEcosystemAdmin ? (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="text-lg">Join this space</CardTitle>
-            <CardDescription>
-              You are not a member yet. Ask a teacher or admin for an
-              invitation code to participate in this space.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : (
-        <>
-          <section className="mt-8 space-y-4">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              Members
-            </h2>
-            <Card>
-              <CardContent className="pt-6">
-                {visibleMemberships.length > 0 ? (
-                  <ul className="divide-y">
-                    {visibleMemberships.map((membership) => (
-                      <li
-                        key={`${membership.profiles?.display_name}-${membership.role}`}
-                        className="flex items-center justify-between py-2"
-                      >
-                        <span className="text-sm font-medium">
-                          {membership.profiles?.display_name ?? "A member"}
-                        </span>
-                        <Badge variant="secondary">{membership.role}</Badge>
+      {/* Pending edits — ecosystem admin only, shown prominently */}
+      {isEcosystemAdmin && pendingEdits.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">
+            Pending edit requests ({pendingEdits.length})
+          </p>
+          {pendingEdits.map((edit) => {
+            const changes = (edit.changes ?? {}) as Record<string, unknown>;
+            const requested = Object.entries(changes).filter(
+              ([, v]) => typeof v === "string" && (v as string).length > 0,
+            );
+            return (
+              <div
+                key={edit.id}
+                className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4"
+              >
+                <p className="text-sm font-medium text-on-surface">
+                  {edit.profiles?.display_name ?? "A space admin"} requested an edit
+                </p>
+                <p className="mt-0.5 text-xs text-on-surface-variant">
+                  {new Date(edit.created_at).toLocaleDateString(undefined, {
+                    year: "numeric", month: "short", day: "numeric",
+                  })}
+                </p>
+                {requested.length > 0 && (
+                  <ul className="mt-2 space-y-0.5 text-sm text-on-surface">
+                    {requested.map(([field, value]) => (
+                      <li key={field}>
+                        <span className="font-medium capitalize">{field}:</span>{" "}
+                        {String(value)}
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No members yet.
-                  </p>
                 )}
-              </CardContent>
-              {isSpaceAdmin ? (
-                <CardFooter className="justify-end border-t pt-4">
-                  <SpaceEditDialog
-                    space={space}
-                    latestEdit={latestEdit}
-                  />
-                </CardFooter>
-              ) : null}
-            </Card>
-          </section>
-
-          {isEcosystemAdmin ? (
-            <section className="mt-8 space-y-4">
-              <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                Curriculum
-              </h2>
-              <Card>
-                <CardContent className="pt-6">
-                  {curricula.length > 0 ? (
-                    <ul className="divide-y">
-                      {curricula.map((curriculum) => (
-                        <li
-                          key={curriculum.id}
-                          className="space-y-2 py-3"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="flex items-center gap-2 text-sm font-medium">
-                              {curriculum.name}
-                              <Badge
-                                variant={
-                                  curriculum.is_published
-                                    ? "secondary"
-                                    : "outline"
-                                }
-                              >
-                                {curriculum.is_published
-                                  ? "Published"
-                                  : "Draft"}
-                              </Badge>
-                            </span>
-                            <Badge variant="secondary">
-                              Year {curriculum.year}
-                            </Badge>
-                          </div>
-
-                          {curriculum.curriculum_goals?.length ? (
-                            <ul className="space-y-0.5 text-sm text-muted-foreground">
-                              {curriculum.curriculum_goals.map((goal) => (
-                                <li key={goal.id}>
-                                  <span className="text-xs uppercase tracking-wide text-muted-foreground/70">
-                                    Goal:
-                                  </span>{" "}
-                                  {goal.description}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null}
-
-                          {curriculum.grades?.length ? (
-                            <ul className="space-y-1 pl-2 text-sm">
-                              {curriculum.grades.map((grade) => (
-                                <li key={grade.id} className="text-sm">
-                                  <span className="font-medium">
-                                    {grade.name}
-                                  </span>
-                                  {grade.terms?.length ? (
-                                    <span className="text-muted-foreground">
-                                      {" "}
-                                      ({grade.terms.length}{" "}
-                                      {grade.terms.length === 1
-                                        ? "term"
-                                        : "terms"}
-                                      )
-                                    </span>
-                                  ) : null}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              No grades yet.
-                            </p>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No curriculum yet.
-                    </p>
-                  )}
-                </CardContent>
-                <CardFooter className="justify-end border-t pt-4">
-                  <CurriculumDialog
-                    space={{ id: space.id }}
-                    curricula={curricula.map((entry) => ({
-                      id: entry.id,
-                      name: entry.name,
-                      year: entry.year,
-                    }))}
-                  />
-                </CardFooter>
-              </Card>
-            </section>
-          ) : null}
-        </>
+                <div className="mt-3 flex gap-2">
+                  <form action={approveSpaceEdit}>
+                    <input type="hidden" name="edit_id" value={edit.id} />
+                    <Button type="submit" size="sm">Approve</Button>
+                  </form>
+                  <form action={rejectSpaceEdit}>
+                    <input type="hidden" name="edit_id" value={edit.id} />
+                    <Button type="submit" size="sm" variant="outline">Reject</Button>
+                  </form>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
+
+      {/* Not a member */}
+      {!isMember && !isEcosystemAdmin && (
+        <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-6">
+          <p className="text-sm font-medium text-on-surface">Join this space</p>
+          <p className="mt-1 text-sm text-on-surface-variant">
+            You are not a member yet. Ask a teacher or admin for an invitation code.
+          </p>
+        </div>
+      )}
+
+      {/* Stat row — members at a glance */}
+      {(isMember || isEcosystemAdmin) && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <StatTile label="Teachers" value={teacherCount} />
+          <StatTile label="Learners" value={learnerCount} />
+          <StatTile label="Total members" value={visibleMemberships.length} />
+        </div>
+      )}
+
+      {/* Tabbed content */}
+      {(isMember || isEcosystemAdmin) && (
+        <SpaceTabs
+          spaceId={space.id}
+          memberships={visibleMemberships}
+          curricula={curricula}
+          staffSyllabi={staffSyllabi}
+          isStaff={isStaff}
+          isEcosystemAdmin={isEcosystemAdmin}
+        />
+      )}
+    </div>
+  );
+}
+
+function StatTile({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4">
+      <p className="text-xs font-medium text-on-surface-variant">{label}</p>
+      <p className="mt-1 text-2xl font-bold tabular-nums text-on-surface">{value}</p>
     </div>
   );
 }
@@ -343,11 +259,7 @@ type CurriculumTreeEntry = {
   year: number;
   is_published: boolean | null;
   curriculum_goals: { id: string; description: string }[] | null;
-  grades: {
-    id: string;
-    name: string;
-    terms: { id: string }[] | null;
-  }[] | null;
+  grades: { id: string; name: string; terms: { id: string }[] | null }[] | null;
 };
 
 type PendingEdit = {
@@ -357,67 +269,15 @@ type PendingEdit = {
   profiles: { display_name: string } | null;
 };
 
-function PendingSpaceEdits({ edits }: { edits: PendingEdit[] }) {
-  return (
-    <section className="mt-8 space-y-4">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-        Pending space edit requests
-      </h2>
-      {edits.map((edit) => {
-        const changes = (edit.changes ?? {}) as Record<string, unknown>;
-        const requested = Object.entries(changes).filter(
-          ([, value]) => typeof value === "string" && value.length > 0,
-        );
-        return (
-          <Card key={edit.id}>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">
-                {edit.profiles?.display_name ?? "A space admin"} requested an
-                edit
-              </CardTitle>
-              <CardDescription>
-                Submitted {formatDate(edit.created_at)}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {requested.length > 0 ? (
-                <ul className="space-y-1 text-sm">
-                  {requested.map(([field, value]) => (
-                    <li key={field}>
-                      <span className="font-medium capitalize">
-                        {field}:
-                      </span>{" "}
-                      {String(value)}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              <div className="flex gap-2">
-                <form action={approveSpaceEdit}>
-                  <input type="hidden" name="edit_id" value={edit.id} />
-                  <Button type="submit" size="sm">
-                    Approve
-                  </Button>
-                </form>
-                <form action={rejectSpaceEdit}>
-                  <input type="hidden" name="edit_id" value={edit.id} />
-                  <Button type="submit" size="sm" variant="outline">
-                    Reject
-                  </Button>
-                </form>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </section>
-  );
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+type SyllabiRow = {
+  id: string;
+  curriculum_id: string;
+  curricula: { name: string; year: number } | null;
+  grading_policy: {
+    pass_mark?: number;
+    grade_breakdown: { label: string; weight_pct: number }[];
+  } | null;
+  required_materials: string | null;
+  office_hours: string | null;
+  classroom_expectations: string | null;
+};

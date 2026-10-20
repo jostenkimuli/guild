@@ -28,13 +28,20 @@ export default async function EcosystemDetailLayout({
 
   const { data: ecosystem } = await supabase
     .from("ecosystems")
-    .select("id, slug, name, type, vision, mission, description, created_by")
+    .select("id, slug, name, type, vision, mission, description")
     .eq("slug", slug)
     .maybeSingle();
 
   if (!ecosystem) notFound();
-
-  if (ecosystem.created_by !== user.id) redirect("/");
+  if (profile.role !== "ecosystem_admin" || profile.status !== "approved") redirect("/");
+  const { data: assignment } = await supabase
+    .from("ecosystem_staff")
+    .select("user_id")
+    .eq("ecosystem_id", ecosystem.id)
+    .eq("user_id", user.id)
+    .eq("role", "ecosystem_admin")
+    .maybeSingle();
+  if (!assignment) redirect("/");
 
   return <>{children}</>;
 }

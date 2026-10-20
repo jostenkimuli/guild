@@ -20,18 +20,34 @@ export default async function SettingsPage({
   const { data: ecosystem } = await supabase
     .from("ecosystems")
     .select(
-      "id, slug, name, type, vision, mission, badge_url, theme_primary, theme_supporting, theme_accent, created_by",
+      "id, slug, name, type, vision, mission, description, raw_ecosystem_meta_data, badge_url, theme_primary, theme_supporting, theme_accent",
     )
     .eq("slug", slug)
     .maybeSingle();
 
   if (!ecosystem) notFound();
-  if (ecosystem.created_by !== user.id) redirect("/");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, status")
+    .eq("id", user.id)
+    .single();
+  const { data: assignment } = await supabase
+    .from("ecosystem_staff")
+    .select("user_id")
+    .eq("ecosystem_id", ecosystem.id)
+    .eq("user_id", user.id)
+    .eq("role", "ecosystem_admin")
+    .maybeSingle();
+  if (profile?.role !== "ecosystem_admin" || profile.status !== "approved" || !assignment) redirect("/");
   if (!isSchoolType(ecosystem.type)) redirect(`/ecosystem/${slug}`);
+  const rawMeta = ecosystem.raw_ecosystem_meta_data;
+  const profileMeta = rawMeta && typeof rawMeta === "object" && !Array.isArray(rawMeta)
+    ? Object.fromEntries(Object.entries(rawMeta).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+    : {};
 
   return (
     <div className="space-y-6">
-      <ThemeEditor ecosystem={ecosystem} />
+      <ThemeEditor ecosystem={{ ...ecosystem, raw_ecosystem_meta_data: profileMeta }} />
     </div>
   );
 }
