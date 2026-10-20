@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { APP_HOST } from "@/lib/subdomain";
 
 function handoffHash(session: {
   access_token: string;
@@ -35,4 +36,23 @@ export async function navigateToEcosystemSubdomain(
   const hash = handoffHash(session);
   const target = hash ? `${base}login#${hash}` : base;
   window.location.assign(target);
+}
+
+/**
+ * Moves a session from an ecosystem subdomain back to the main app host.
+ * This is needed on localhost, where auth cookies are host-only and cannot
+ * cross from `school.localhost` to `localhost`.
+ */
+export async function navigateToAppHost(): Promise<void> {
+  const appUrl = new URL(window.location.origin);
+  appUrl.hostname = APP_HOST;
+  appUrl.pathname = "/login";
+  appUrl.search = "";
+
+  const supabase = createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  appUrl.hash = handoffHash(session);
+  window.location.assign(appUrl.toString());
 }

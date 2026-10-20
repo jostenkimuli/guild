@@ -23,11 +23,16 @@ export default async function EcosystemRootPage() {
   if (!profile || profile.role !== "ecosystem_admin") redirect("/");
   if (profile.status !== "approved") redirect("/");
 
-  const { data: ecosystems } = await supabase
-    .from("ecosystems")
-    .select("id, slug")
-    .eq("created_by", user.id);
-  const ecosystem = ecosystems?.[0];
+  const { data: assignment } = await supabase
+    .from("ecosystem_staff")
+    .select("ecosystem_id")
+    .eq("user_id", user.id)
+    .eq("role", "ecosystem_admin")
+    .limit(1)
+    .maybeSingle();
+  const { data: ecosystem } = assignment
+    ? await supabase.from("ecosystems").select("id, slug").eq("id", assignment.ecosystem_id).maybeSingle()
+    : { data: null };
 
   if (ecosystem) {
     redirect(`/ecosystem/${ecosystem.slug}`);

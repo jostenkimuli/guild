@@ -52,6 +52,7 @@ priority (P0/P1/P2)`.
 | Phase | Sprints | Unlocks |
 | ----- | ------- | ------- |
 | 1. School → Classroom → Lessons → Teacher/Learner | 1–2 | Core system stability and user traction |
+| 1c. National curriculum compliance | 2 (added) | Schools plan against a real national curriculum, not an invented one |
 | 2. Mentor role | 3 | Mentorship / apprenticeship |
 | 3. Teams within a Space | 4 | Collaboration |
 | 4. Challenge + Project entities | 5–6 | Problem-solving |
@@ -61,9 +62,9 @@ priority (P0/P1/P2)`.
 
 ## Epic 1 — Ecosystems & Spaces (Phase 1, P0)
 
-- **E-1** — Create an ecosystem — As a founder, I want to create an ecosystem
-  with a name, type (academic/corporate/geographic), and location scale, so
-  that it can host spaces. (S, P0)
+- **E-1** — Onboard a school ecosystem — As a programme administrator, I want
+  to create a school with its basic details and assign an ecosystem admin, so
+  that the school can complete its profile and host spaces. (S, P0)
 - **E-2** — Join an ecosystem — As a user, I want to join an ecosystem via
   invite, so that I can see its spaces. (S, P0)
 - **S-1** — Create a space — As a teacher, I want to create a classroom inside
@@ -74,8 +75,11 @@ priority (P0/P1/P2)`.
   code or open join, so that I become a member. (S, P0)
 - **S-4** — Space home page — As a member, I want a space page with its
   mission, roster, and recent activity, so that I can orient quickly. (M, P0)
-- **S-5** — Space membership — As an owner, I want to manage roles and remove
-  members, so that the space stays healthy. (M, P1)
+- **S-5** — Space membership — As an ecosystem or space admin, I want to assign
+  existing members to spaces, change their in-space roles, move or remove them,
+  and assign space admins to the spaces they manage, so that each roster is
+  accurate. New teachers and learners can join through a role-specific code.
+  (M, P1)
 
 ## Epic 2 — Content & Learning (Phase 1, P0)
 
@@ -149,12 +153,43 @@ priority (P0/P1/P2)`.
 - **M-4** — Ecosystem directory — As a visitor, I want to browse all public
   ecosystems, so that discovery is possible. (S, P2)
 
+## Epic 8 — National Curriculum Compliance (Phase 1c, P1)
+
+A school follows a real national curriculum (NCDC, Uganda), not an invented
+one. This epic keeps the two apart: the national requirement is read-only
+platform reference data; a school's plan for delivering it is the school
+owner's own, per-ecosystem data. See `docs/NCDC_CURRICULUM_REFERENCE.md` for
+the researched shape of all six NCDC levels, and `docs/CONCEPTUAL_MODEL.md`
+for the schema.
+
+- **NC-1** — Define the national curriculum — As a platform admin, I want the
+  official NCDC curriculum (themes, competences, weekly period allocation,
+  rules) loaded as read-only reference data, so that every school sees
+  exactly what is required. (M, P1 — **done for Uganda P1**, all 12 themes)
+- **NC-2** — Adopt a national curriculum — As a school owner, I want to adopt
+  the national curriculum that matches my school, so that I can plan against
+  it. (S, P1 — **done**)
+- **NC-3** — Translate into implementation standards — As a school owner, I
+  want to assign a teacher and plan each week, build a timetable that is
+  checked against the national rules before it can publish, and record the
+  choices the curriculum leaves to my school (language of instruction,
+  religious education, reporting), so that delivery matches the national
+  requirement. (L, P1 — **done**)
+- **NC-4** — Extend to other NCDC levels — As a platform admin, I want Upper
+  Primary, O-Level, A-Level and BTVET loaded against the same flexible
+  curriculum tree, so that schools beyond P1 are covered. (L, P2 — not
+  started; schema is generalised and ready for this, no redesign needed)
+
 ---
 
 ## Notes for sprint planning
 
 - Sprint 0 (done) = scaffold: stack, auth, schema, green build, agile process.
-- Schema status: `ecosystems`, `spaces`, `space_memberships` + enums exist;
+- Schema status: schools are represented by `ecosystems`; programme scope is
+  currently global (there is no `programmes` table). Approved programme admins
+  can onboard school ecosystems; assigned ecosystem admins complete the
+  profile. `spaces` still represent classes/departments. `space_memberships` +
+  enums exist;
   Sprint 1 added the admin layer (`ecosystem_staff`, `invitation_codes`,
   `profiles.role`/`status`, super admin + delegation); Sprint 2 added the
   curriculum structure (`curricula` + `curriculum_goals`, `grades` → `terms`
@@ -165,3 +200,14 @@ priority (P0/P1/P2)`.
   (`communities`, `community_members`, `problems`, `projects`) is gone —
   Challenge and Project return redesigned in Sprints 5/6. Keep the RLS +
   grants + `db:types` discipline from the DoD on every migration.
+- National curriculum compliance (Epic 8) added onto Sprint 2's foundation:
+  `national_curricula` + `national_strands`/`national_aims`/
+  `national_period_allocations`/`national_rules`/`national_area_units`
+  (platform reference, read by anyone, written by platform admins), a
+  generic self-referencing `curriculum_nodes` tree (theme/sub_theme/
+  competence today, typed by a plain column — no lookup table, so a future
+  NCDC level widens a check constraint rather than adding a table), and the
+  school-owned implementation layer (`school_curriculum_adoptions`,
+  `implementation_weeks` + strand plans, `implementation_timetables` +
+  slots, `school_decisions`). See `docs/NCDC_CURRICULUM_REFERENCE.md` for
+  the source research and `docs/CONCEPTUAL_MODEL.md` for the schema.

@@ -4,8 +4,6 @@ import { useEffect, useActionState, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
-import { toast } from "sonner";
-
 import {
   createEcosystem,
   createEcosystemAdmin,
@@ -101,6 +99,8 @@ function CreateAdminAccountForm({
   actionLabel,
   hint,
   ecosystemId,
+  spaceOptions,
+  ecosystemType,
   showEcosystemType = false,
   onSuccess,
 }: {
@@ -112,6 +112,8 @@ function CreateAdminAccountForm({
   actionLabel: string;
   hint: string;
   ecosystemId?: string;
+  spaceOptions?: { id: string; name: string }[];
+  ecosystemType?: string;
   showEcosystemType?: boolean;
   onSuccess?: () => void;
 }) {
@@ -124,6 +126,26 @@ function CreateAdminAccountForm({
     <form action={formAction} className="space-y-4">
       {ecosystemId ? (
         <input type="hidden" name="ecosystem_id" value={ecosystemId} />
+      ) : null}
+      {spaceOptions ? (
+        <Field
+          id={`${idPrefix}-space_id`}
+          label="Space to manage"
+          hint="The admin can later be assigned to more spaces from this page."
+        >
+          <select
+            id={`${idPrefix}-space_id`}
+            name="space_id"
+            className={selectClass}
+            required
+            defaultValue=""
+          >
+            <option value="" disabled>Select a space</option>
+            {spaceOptions.map((space) => (
+              <option key={space.id} value={space.id}>{space.name}</option>
+            ))}
+          </select>
+        </Field>
       ) : null}
       <Field id={`${idPrefix}-full_name`} label="Full name">
         <Input
@@ -146,7 +168,9 @@ function CreateAdminAccountForm({
         />
       </Field>
       {showEcosystemType ? (
-        <Field
+        ecosystemType ? (
+          <input type="hidden" name="ecosystem_type" value={ecosystemType} />
+        ) : <Field
           id={`${idPrefix}-ecosystem_type`}
           label="Ecosystem type"
           hint="The type of ecosystem this admin will create."
@@ -202,8 +226,12 @@ export function CreateProgramAdminForm({
 
 export function CreateEcosystemAdminForm({
   onSuccess,
+  ecosystemId,
+  ecosystemType,
 }: {
   onSuccess?: () => void;
+  ecosystemId?: string;
+  ecosystemType?: string;
 }) {
   return (
     <CreateAdminAccountForm
@@ -212,12 +240,21 @@ export function CreateEcosystemAdminForm({
       actionLabel="Create ecosystem admin"
       hint="The account starts pending. Approval is decided by the super admin, or by the program admin if the super admin has delegated approval to them."
       showEcosystemType
+      ecosystemId={ecosystemId}
+      ecosystemType={ecosystemType}
       onSuccess={onSuccess}
     />
   );
 }
 
-export function CreateSpaceAdminForm({ ecosystemId }: { ecosystemId: string }) {
+
+export function CreateSpaceAdminForm({
+  ecosystemId,
+  spaces,
+}: {
+  ecosystemId: string;
+  spaces: { id: string; name: string }[];
+}) {
   return (
     <CreateAdminAccountForm
       idPrefix="sa"
@@ -225,6 +262,7 @@ export function CreateSpaceAdminForm({ ecosystemId }: { ecosystemId: string }) {
       actionLabel="Create space admin"
       hint="The account can sign in immediately and must set its own password on first login."
       ecosystemId={ecosystemId}
+      spaceOptions={spaces}
     />
   );
 }
@@ -630,14 +668,16 @@ export function CreateSchoolEcosystemForm({
 export function CreateSpaceForm({
   ecosystemId,
   defaultType = "department",
+  onSuccess,
 }: {
   ecosystemId: string;
   defaultType?: SpaceType;
+  onSuccess?: () => void;
 }) {
   const [state, action, pending] = useActionState(createSpace, {
     success: false,
   });
-  useRefreshOnSuccess(state);
+  useRefreshOnSuccess(state, onSuccess);
 
   return (
     <form action={action} className="space-y-4">
@@ -667,15 +707,6 @@ export function CreateSpaceForm({
           </select>
         </Field>
       </div>
-      <Field id="sp-slug" label="Slug" hint="Optional; generated from the name if left blank.">
-        <Input
-          id="sp-slug"
-          name="slug"
-          maxLength={60}
-          pattern="[a-z0-9][a-z0-9-]*"
-          placeholder="my-department"
-        />
-      </Field>
       <Field id="sp-description" label="Description">
         <Textarea id="sp-description" name="description" maxLength={1000} />
       </Field>
@@ -697,12 +728,10 @@ export function CreateInvitationCodeForm({
   spaces,
   mode,
   defaultSpaceId,
-  onSuccess,
 }: {
   spaces: InvitationSpace[];
   mode: "learner" | "teacher";
   defaultSpaceId?: string;
-  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(createInvitationCode, {
     success: false,
@@ -712,16 +741,13 @@ export function CreateInvitationCodeForm({
   const [selectedSpaceId, setSelectedSpaceId] = useState(
     defaultSpaceId ?? spaces[0]?.id ?? "",
   );
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (state.success && state.code) {
-      toast.success(`Invitation code created`, {
-        description: `Code: ${state.code}`,
-      });
-      onSuccess?.();
       router.refresh();
     }
-  }, [state, router, onSuccess]);
+  }, [state, router]);
 
   const selectedSpace = spaces.find((s) => s.id === selectedSpaceId);
   const grades = mode === "learner" ? (selectedSpace?.grades ?? []) : [];
@@ -784,7 +810,37 @@ export function CreateInvitationCodeForm({
         </Field>
       </div>
 
-      <Feedback state={state} />
+      {state.success && state.code ? (
+        <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <p className="text-sm font-medium text-on-surface">
+            Invitation code created. Share it with the {mode}.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              aria-label="Invitation code"
+              readOnly
+              value={state.code}
+              className="font-mono font-semibold tracking-wider"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(state.code!);
+                  setCopiedCode(state.code!);
+                } catch {
+                  setCopiedCode(null);
+                }
+              }}
+            >
+              {copiedCode === state.code ? "Copied" : "Copy code"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Feedback state={state} />
+      )}
       <Button type="submit" disabled={pending}>
         {pending ? "Generating…" : "Generate code"}
       </Button>

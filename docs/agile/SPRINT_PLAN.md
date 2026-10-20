@@ -158,6 +158,72 @@ the container layer of the product.
 
 ---
 
+## Sprint 2 addendum — National curriculum compliance (Epic 8)
+
+**Goal:** a school follows Uganda's real NCDC curriculum, not an invented
+one — defined clearly (Cycle 1) and translated into the school's own
+implementation plan (Cycle 2). Added onto Sprint 2's curriculum tree after
+research into NCDC's actual site and documents; see
+`docs/NCDC_CURRICULUM_REFERENCE.md`.
+
+### Commitments — DONE
+- NC-1 Define the national curriculum (read-only, per level)
+- NC-2 Adopt a national curriculum
+- NC-3 Translate into implementation standards (term plan, timetable, school
+  decisions)
+
+### Schema work — DONE
+- `20260921000000_national_curriculum_and_implementation.sql`: platform
+  reference tables (`national_curricula`, `national_aims`,
+  `national_strands`, `national_period_allocations`, `national_rules`,
+  `national_area_units`) plus the first, P1-specific version of the theme
+  tree and the school-implementation layer
+  (`school_curriculum_adoptions`, `implementation_weeks` + strand plans,
+  `implementation_timetables` + slots, `school_decisions`), with
+  `save_implementation_week`/`save_implementation_timetable` RPCs (the
+  latter enforces every required period placed before publish).
+- `20260922000000_flexible_curriculum_nodes.sql`: replaced the P1-only
+  `national_themes`/`national_subthemes`/`national_competences` chain with
+  one generic, self-referencing `curriculum_nodes` tree, typed by a plain
+  `node_type` text column (a future NCDC level widens the check constraint,
+  not a new table — deliberately not the dormant `node_types` lookup table
+  from `20260825000003`, which this migration also retires). Also dropped
+  the empty, unused universal-node scaffold that collided with the new
+  table name. `implementation_weeks` now plans against any
+  `curriculum_node`, not specifically a sub-theme.
+- Seed: `supabase/seeds/national_curriculum_p1.sql` (structure: 12 themes,
+  36 sub-themes, weekly period allocation, rules, RE/PE schedule) +
+  `national_curriculum_p1_themes_2_12.sql` (all 1,574 competences and 244
+  assessment guidelines across all 12 themes, transcribed from the NCDC P1
+  document). RLS verified positive (school owner) and negative (learner
+  blocked from planning and from writing reference data) via direct RPC/REST
+  calls against the local stack.
+
+### UI work — DONE
+- `/ecosystem/[slug]/curriculum`: adoption card, aims/outcomes/competences
+  diagram, weekly period table with its rules, and a searchable browser (by
+  theme or by strand) with Christian/Islamic RE and PE tabs.
+- `/ecosystem/[slug]/implementation`: a 7-step chain, 3 completion cards, and
+  three tabs — term plan (locked national requirement next to the school's
+  own editable plan), a clickable weekly timetable grid validated live
+  against the national rules, and school decisions (each quoting the
+  national rule it answers).
+- Both wired into the ecosystem-admin sidebar under a new "Curriculum"
+  group. The data-fetching layer (`src/lib/curriculum/*.ts`) was rewritten
+  when the schema generalised; every UI component was left unchanged by
+  design — confirmed by a clean `tsc` pass with no component edits needed.
+
+### DoD notes
+- Fresh `db:reset` passes with both new seed files; `db:types` regenerated;
+  lint, typecheck, and `next build` green; positive + negative RLS and RPC
+  checks verified live against the local stack.
+- Not yet done: `docs/CONCEPTUAL_MODEL.md` and the published dev docs
+  (`documentation/*.html`) needed a separate pass to register this and three
+  prior migrations they were missing — see the docs commit alongside this
+  one.
+
+---
+
 ## Sprint 3 — Mentors (Phase 2)
 
 **Goal:** mentorship capability — mentors guide learners through content and
@@ -260,3 +326,19 @@ objective-level evidence. Started from the plan's single `content` table but
 expanded (with agreement) to the full design because it directly serves the
 MVP loop and the conceptual model; learner self-tracking on objective results
 was added after the first pass so L-4 works for members, not just teachers.
+
+### Sprint 2 addendum — National curriculum compliance
+Built Cycle 1 (define the national curriculum) and Cycle 2 (translate into
+implementation standards) against Uganda's real NCDC curriculum. First pass
+modelled the theme tree P1-specifically; researching NCDC's other five
+levels (`docs/NCDC_CURRICULUM_REFERENCE.md`) showed only Lower Primary is
+thematic — Upper Primary, O-Level, A-Level and BTVET are subject-based or
+modular. Generalised the tree to a typed, self-referencing
+`curriculum_nodes` table before loading more content, while it was still
+cheap (one theme populated), rather than after. Deliberately did not use a
+`node_types` lookup table — a plain `node_type` check constraint is
+extendable without a new table and was requested directly. All 12 P1 themes
+are now fully loaded (1,574 competences, 244 assessment guidelines); the
+other five NCDC levels are documented but not built — parked for a future
+sprint per Epic 8 (NC-4), since the schema is already shaped to take them
+without another redesign.

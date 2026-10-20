@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database, Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_THEME,
@@ -45,13 +45,18 @@ export async function updateEcosystemTheme(
 
   const { data: ecosystem } = await supabase
     .from("ecosystems")
-    .select("created_by, slug")
+    .select("id, slug, raw_ecosystem_meta_data")
     .eq("id", ecosystemId)
     .maybeSingle();
   if (!ecosystem) return { success: false, error: "Ecosystem not found." };
-  if (ecosystem.created_by !== user.id) {
-    return { success: false, error: "Only the ecosystem creator can edit its branding." };
-  }
+  const { data: assignment } = await supabase
+    .from("ecosystem_staff")
+    .select("user_id")
+    .eq("ecosystem_id", ecosystemId)
+    .eq("user_id", user.id)
+    .eq("role", "ecosystem_admin")
+    .maybeSingle();
+  if (!assignment) return { success: false, error: "You do not administer this ecosystem." };
 
   const name = cleanValue(String(formData.get("name") ?? ""), 120);
   if (name.length < 2) {
@@ -66,6 +71,22 @@ export async function updateEcosystemTheme(
   const primaryRaw = cleanValue(String(formData.get("theme_primary") ?? ""), 16);
   const accentRaw = cleanValue(String(formData.get("theme_accent") ?? ""), 16);
   const badgeUrl = cleanValue(String(formData.get("badge_url") ?? ""), 500) || null;
+  const existingMeta = ecosystem.raw_ecosystem_meta_data;
+  const rawMeta: Record<string, Json> =
+    existingMeta && typeof existingMeta === "object" && !Array.isArray(existingMeta)
+      ? Object.fromEntries(Object.entries(existingMeta).filter((entry) => entry[1] !== undefined)) as Record<string, Json>
+      : {};
+  for (const key of [
+    "director_name", "director_contact", "director_email",
+    "headteacher_name", "headteacher_contact", "headteacher_email",
+    "school_location", "country", "region", "district", "sub_county", "parish",
+  ]) {
+    const value = cleanValue(String(formData.get(key) ?? ""), 120);
+    rawMeta[key] = value;
+    if (key.endsWith("_email") && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      return { success: false, error: `${key.replaceAll("_", " ")} is not a valid email.` };
+    }
+  }
 
   if (primaryRaw && !HEX_RE.test(primaryRaw)) {
     return { success: false, error: "Dominant color must be a hex value like #0040e0." };
@@ -83,6 +104,8 @@ export async function updateEcosystemTheme(
       name,
       vision: cleanValue(String(formData.get("vision") ?? "")) || null,
       mission: cleanValue(String(formData.get("mission") ?? "")) || null,
+      description: cleanValue(String(formData.get("description") ?? "")) || null,
+      raw_ecosystem_meta_data: rawMeta,
       badge_url: badgeUrl,
       theme_primary: primaryRaw || null,
       theme_supporting: supporting,
@@ -121,13 +144,18 @@ export async function resetEcosystemTheme(
 
   const { data: ecosystem } = await supabase
     .from("ecosystems")
-    .select("created_by, slug")
+    .select("id, slug")
     .eq("id", ecosystemId)
     .maybeSingle();
   if (!ecosystem) return { success: false, error: "Ecosystem not found." };
-  if (ecosystem.created_by !== user.id) {
-    return { success: false, error: "Only the ecosystem creator can edit its branding." };
-  }
+  const { data: assignment } = await supabase
+    .from("ecosystem_staff")
+    .select("user_id")
+    .eq("ecosystem_id", ecosystemId)
+    .eq("user_id", user.id)
+    .eq("role", "ecosystem_admin")
+    .maybeSingle();
+  if (!assignment) return { success: false, error: "You do not administer this ecosystem." };
 
   const payload: Database["public"]["Tables"]["ecosystems"]["Update"] = {
     theme_primary: DEFAULT_THEME.primary ?? null,

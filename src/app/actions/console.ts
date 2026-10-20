@@ -149,7 +149,6 @@ export async function createEcosystemAdmin(
   if (!ECOSYSTEM_TYPES.includes(ecosystemType)) {
     return { success: false, error: "Invalid ecosystem type." };
   }
-
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_create_user", {
     p_email: email,
@@ -164,6 +163,7 @@ export async function createEcosystemAdmin(
   if (error) return { success: false, error: error.message };
   return { success: true };
 }
+
 
 // ------------------------------------------------------------
 // Super admin: create a program-admin account (pending)
@@ -387,29 +387,105 @@ export async function createSpaceAdmin(
   const tempPassword = String(formData.get("temp_password") ?? "");
   const fullName = String(formData.get("full_name") ?? "").trim();
   const ecosystemId = String(formData.get("ecosystem_id") ?? "");
+  const spaceId = String(formData.get("space_id") ?? "");
 
-  if (!ecosystemId) {
-    return { success: false, error: "Ecosystem is required." };
+  if (profile.role !== "ecosystem_admin" || profile.status !== "approved") {
+    return { success: false, error: "Only an approved ecosystem admin can create a space admin." };
+  }
+  if (!ecosystemId || !spaceId) {
+    return { success: false, error: "Choose the ecosystem and space this admin will manage." };
   }
   const invalid = validateAccountFields(email, tempPassword, fullName);
   if (invalid) return { success: false, error: invalid };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_create_user", {
+  const { error } = await supabase.rpc("admin_create_space_admin", {
     p_email: email,
     p_temp_password: tempPassword,
-    p_role: "space_admin",
     p_full_name: fullName,
     p_ecosystem_id: ecosystemId,
-    p_status: "pending",
+    p_space_id: spaceId,
   });
 
   if (error) return { success: false, error: error.message };
   return { success: true };
 }
 
+export async function setSpaceAdminAssignments(
+  _: ConsoleActionState,
+  formData: FormData,
+): Promise<ConsoleActionState> {
+  const profile = await getProfile();
+  if (!profile || profile.role !== "ecosystem_admin" || profile.status !== "approved") {
+    return { success: false, error: "Only an approved ecosystem admin can manage space admin assignments." };
+  }
+
+  const ecosystemId = String(formData.get("ecosystem_id") ?? "");
+  const userId = String(formData.get("user_id") ?? "");
+  const spaceIds = formData.getAll("space_ids").map(String).filter(Boolean);
+  if (!ecosystemId || !userId) {
+    return { success: false, error: "Ecosystem and space admin are required." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_space_admin_assignments", {
+    p_ecosystem_id: ecosystemId,
+    p_user_id: userId,
+    p_space_ids: spaceIds,
+  });
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/ecosystem/[slug]/staff", "page");
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 // ------------------------------------------------------------
-// Space admin: create a space in their ecosystem
+// Ecosystem admin: approve a pending space-admin account
+// ------------------------------------------------------------
+
+export async function approveSpaceAdmin(formData: FormData) {
+  const profile = await getProfile();
+  const userId = String(formData.get("user_id") ?? "");
+
+  if (!profile || profile.role !== "ecosystem_admin" || profile.status !== "approved") {
+    redirect("/?error=unauthorized");
+  }
+  if (!userId) redirect("/?error=missing-id");
+
+  // Verify the space admin belongs to an ecosystem this admin manages
+  const supabase = await createClient();
+  const { data: staffEntry } = await supabase
+    .from("ecosystem_staff")
+    .select("ecosystem_id")
+    .eq("user_id", userId)
+    .eq("role", "space_admin")
+    .maybeSingle();
+
+  if (!staffEntry) redirect("/?error=not-found");
+
+  const { data: assignment } = await supabase
+    .from("ecosystem_staff")
+    .select("ecosystem_id")
+    .eq("ecosystem_id", staffEntry.ecosystem_id)
+    .eq("user_id", profile.id)
+    .eq("role", "ecosystem_admin")
+    .maybeSingle();
+
+  if (!assignment) redirect("/?error=unauthorized");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: "approved" })
+    .eq("id", userId)
+    .eq("role", "space_admin");
+
+  if (error) redirect(`/?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/ecosystem/[slug]/staff", "page");
+}
+
+// ------------------------------------------------------------
+// Ecosystem admin: create a space in their ecosystem
 // ------------------------------------------------------------
 
 export async function createSpace(
@@ -429,27 +505,32 @@ export async function createSpace(
   }
 
   const type = String(formData.get("type") ?? "department") as Database["public"]["Enums"]["space_type"];
-  const slug =
-    String(formData.get("slug") ?? "").trim() || slugify(name) || null;
-  if (slug && !/^[a-z0-9][a-z0-9-]{0,59}$/.test(slug)) {
-    return {
-      success: false,
-      error: "Slug may only contain lowercase letters, numbers and dashes.",
-    };
-  }
-
+  const baseSlug = slugify(name) || "space";
   const supabase = await createClient();
-  const { error } = await supabase.from("spaces").insert({
+  const values = {
     ecosystem_id: ecosystemId,
     name,
-    slug,
     description: String(formData.get("description") ?? "").trim() || null,
     type,
     created_by: profile.id,
-  });
+  };
 
-  if (error) return { success: false, error: error.message };
-  return { success: true };
+  // Slugs resolve through the global /spaces/[slug] route, so they must be
+  // globally unique. Let the unique index arbitrate concurrent creates and
+  // retry with a suffix if another space already claimed the candidate.
+  for (let suffix = 1; suffix <= 10_000; suffix++) {
+    const ending = suffix === 1 ? "" : `-${suffix}`;
+    const slug = `${baseSlug.slice(0, 60 - ending.length).replace(/-+$/, "")}${ending}`;
+    const { error } = await supabase.from("spaces").insert({ ...values, slug });
+
+    if (!error) return { success: true };
+    if (error.code !== "23505") return { success: false, error: error.message };
+  }
+
+  return {
+    success: false,
+    error: "Could not generate a unique space URL. Please try again.",
+  };
 }
 
 // ------------------------------------------------------------
@@ -467,6 +548,9 @@ export async function createInvitationCode(
   if (!spaceId) return { success: false, error: "Space is required." };
 
   const role = String(formData.get("role") ?? "learner") as Database["public"]["Enums"]["user_space_role"];
+  if (role !== "learner" && role !== "teacher") {
+    return { success: false, error: "Invitation codes can assign a learner or teacher role." };
+  }
 
   const maxUsesRaw = String(formData.get("max_uses") ?? "").trim();
   const maxUses = maxUsesRaw ? Number(maxUsesRaw) : null;
@@ -505,6 +589,45 @@ export async function createInvitationCode(
   return { success: true, code };
 }
 
+export async function manageSpaceMembership(
+  _: ConsoleActionState,
+  formData: FormData,
+): Promise<ConsoleActionState> {
+  const profile = await getProfile();
+  if (!profile || profile.status !== "approved") {
+    return { success: false, error: "An approved account is required." };
+  }
+
+  const sourceSpaceId = String(formData.get("source_space_id") ?? "") || null;
+  const targetSpaceId = String(formData.get("target_space_id") ?? "") || null;
+  const userId = String(formData.get("user_id") ?? "");
+  const roleRaw = String(formData.get("role") ?? "learner");
+  const validRoles = ["teacher", "learner", "mentor", "collaborator"] as const;
+  if (!userId || (!sourceSpaceId && !targetSpaceId)) {
+    return { success: false, error: "Choose a member and a source or target space." };
+  }
+  if (!validRoles.includes(roleRaw as (typeof validRoles)[number])) {
+    return { success: false, error: "Choose a valid membership role." };
+  }
+
+  const supabase = await createClient();
+  const rpcArgs: Database["public"]["Functions"]["manage_space_membership"]["Args"] = {
+    p_user_id: userId,
+    p_role: roleRaw as Database["public"]["Enums"]["user_space_role"],
+    ...(sourceSpaceId ? { p_source_space_id: sourceSpaceId } : {}),
+    ...(targetSpaceId ? { p_target_space_id: targetSpaceId } : {}),
+  };
+  const { error } = await supabase.rpc("manage_space_membership", {
+    ...rpcArgs,
+  });
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/ecosystem/[slug]/members", "page");
+  revalidatePath("/spaces/[slug]/members", "page");
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 // ------------------------------------------------------------
 // Space admin: request to edit a space (pending ecosystem admin approval)
 // ------------------------------------------------------------
@@ -529,7 +652,7 @@ export async function editSpace(
     .single();
 
   const isMemberAdmin = membership?.role === "admin";
-  const isEcosystemAdmin = isApprovedEcosystemAdminOfSpace(
+  const isEcosystemAdmin = await isApprovedEcosystemAdminOfSpace(
     profile,
     spaceId,
   );

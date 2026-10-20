@@ -15,25 +15,27 @@ import { CreateSpaceAdminForm } from "./forms";
 
 export function CreateSpaceAdminDialog({
   ecosystemId,
+  spaces,
 }: {
   ecosystemId: string;
+  spaces: { id: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button">Add space admin</Button>
+        <Button type="button" size="sm">Add space admin</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a space admin</DialogTitle>
           <DialogDescription>
-            Space admins manage the spaces you create and generate invitation
-            codes for them.
+            Choose the first space this admin will manage. You can assign more
+            spaces or change their assignments later.
           </DialogDescription>
         </DialogHeader>
-        <CreateSpaceAdminForm ecosystemId={ecosystemId} />
+        <CreateSpaceAdminForm ecosystemId={ecosystemId} spaces={spaces} />
       </DialogContent>
     </Dialog>
   );

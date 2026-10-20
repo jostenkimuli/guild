@@ -24,7 +24,7 @@ export function InviteLearnersButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button">Invite learners</Button>
+        <Button type="button" size="sm">Invite learners</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -37,7 +37,6 @@ export function InviteLearnersButton({
         <CreateInvitationCodeForm
           spaces={spaces}
           mode="learner"
-          onSuccess={() => setOpen(false)}
         />
       </DialogContent>
     </Dialog>

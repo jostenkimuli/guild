@@ -30,6 +30,8 @@ type EcosystemRow = {
   name: string;
   vision: string | null;
   mission: string | null;
+  description: string | null;
+  raw_ecosystem_meta_data: Record<string, string>;
   badge_url: string | null;
   theme_primary: string | null;
   theme_supporting: string | null;
@@ -61,6 +63,7 @@ export function ThemeEditor({
   const [name, setName] = useState(ecosystem.name);
   const [vision, setVision] = useState(ecosystem.vision ?? "");
   const [mission, setMission] = useState(ecosystem.mission ?? "");
+  const [description, setDescription] = useState(ecosystem.description ?? "");
   const [primary, setPrimary] = useState<string>(
     ecosystem.theme_primary ?? DEFAULT_THEME.primary ?? "#0040e0",
   );
@@ -233,6 +236,48 @@ export function ThemeEditor({
                     value={mission}
                     onChange={(e) => setMission(e.target.value)}
                   />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="school-description">Description</Label>
+                <Textarea
+                  id="school-description"
+                  name="description"
+                  rows={3}
+                  maxLength={1000}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-3 rounded-lg border p-4">
+                <p className="text-sm font-medium">School details</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {[
+                    ["director_name", "Director name"],
+                    ["director_contact", "Director contact"],
+                    ["director_email", "Director email"],
+                    ["headteacher_name", "Headteacher name"],
+                    ["headteacher_contact", "Headteacher contact"],
+                    ["headteacher_email", "Headteacher email"],
+                    ["school_location", "Location"],
+                    ["country", "Country"],
+                    ["region", "Region"],
+                    ["district", "District"],
+                    ["sub_county", "Sub-county"],
+                    ["parish", "Parish"],
+                  ].map(([key, label]) => (
+                    <div key={key} className="space-y-1.5">
+                      <Label htmlFor={`school-meta-${key}`}>{label}</Label>
+                      <Input
+                        id={`school-meta-${key}`}
+                        name={key}
+                        type={key.endsWith("_email") ? "email" : "text"}
+                        maxLength={120}
+                        defaultValue={ecosystem.raw_ecosystem_meta_data[key] ?? ""}
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
 

@@ -88,32 +88,32 @@ export default async function EcosystemStudentsPage({
         }
       >
         {learners.length > 0 ? (
-          <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Space</TableHead>
-                  <TableHead>Joined</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Space</TableHead>
+                <TableHead>Joined</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {learners.map((learner) => (
+                <TableRow key={learner.id}>
+                  <TableCell className="font-medium text-on-surface">
+                    {learner.name}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{learner.spaceName}</Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-on-surface-variant">
+                    {new Date(learner.joinedAt).toLocaleDateString("en-GB", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {learners.map((learner) => (
-                  <TableRow key={learner.id}>
-                    <TableCell className="font-medium">
-                      {learner.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{learner.spaceName}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(learner.joinedAt).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         ) : (
           <EmptyState>
             No students enrolled yet. Generate an invitation code to get
