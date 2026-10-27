@@ -14,8 +14,14 @@ start of every sprint.
 - End each sprint with a retro. Capture what went well, what went wrong, and one
   concrete experiment for next sprint. Record it in the sprint plan.
 - Definition of Done (DoD) applies to every backlog item — see
-  `docs/agile/DEFINITION_OF_DONE.md`. An item is not done until it meets the DoD.
-- One pull request per backlog item. Small, reviewable diffs beat large ones.
+  `docs/agile/DEFINITION_OF_DONE.md`. An item is not done until it meets the DoD;
+  Tier 1 (user outcome) and Tier 2 (regression test) cannot be waived.
+- Definition of Ready: an item may only enter a sprint once it has written
+  acceptance criteria phrased as observable user capabilities (who acts, what
+  they do, what they can see). Planning writes them; missing criteria send the
+  item back to refinement.
+- One pull request per backlog item, including its regression test. Small,
+  reviewable diffs beat large ones.
 
 ## Product
 
@@ -44,10 +50,11 @@ start of every sprint.
 ## Review
 
 - Author self-reviews against the DoD before opening a PR.
-- Reviewer checks: does it meet the story, is RLS/security correct, is the
-  diff minimal, do lint/typecheck/build pass.
+- Reviewer checks: does it meet the story from the user's seat (Tier 1 demo),
+  is there a regression test covering that outcome, is RLS/security correct, is
+  the diff minimal, do lint/typecheck/build/`test:e2e` pass.
 - Reviewers are not rubber stamps. Block merge on anything that violates RLS,
-  leaks data, or breaks the build.
+  leaks data, breaks the build, or leaves a user outcome untested.
 
 ## Machine-specific notes
 
