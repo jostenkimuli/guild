@@ -9,6 +9,8 @@ const PLAYGROUND_NAV = [
   { href: "/playground/theme", label: "Theme" },
   { href: "/playground/curriculum", label: "Curriculum" },
   { href: "/playground/curriculum-admin", label: "Curriculum admin" },
+  { href: "/playground/subscriptions", label: "Subscriptions" },
+  { href: "/playground/school-dashboard", label: "School dashboard" },
   { href: "/playground/lesson", label: "Lesson" },
 ];
 

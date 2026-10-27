@@ -6,6 +6,8 @@ import {
   GraduationCapIcon,
   BlocksIcon,
   ScrollTextIcon,
+  BookMarkedIcon,
+  LayoutDashboardIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +66,22 @@ const PREVIEWS: PreviewDef[] = [
       "Cycle 1 super-admin view: national templates, subject syllabi, learning outcomes and indicators.",
     icon: ScrollTextIcon,
     status: "ready",
+  },
+  {
+    href: "/playground/subscriptions",
+    title: "Subscriptions",
+    description:
+      "Ecosystem-level standard adoption — an ecosystem subscribes once and its spaces follow.",
+    icon: BookMarkedIcon,
+    status: "wip",
+  },
+  {
+    href: "/playground/school-dashboard",
+    title: "School dashboard",
+    description:
+      "National curriculum implementation dashboard: readiness ring, pillar summary and termly metrics for a school admin.",
+    icon: LayoutDashboardIcon,
+    status: "wip",
   },
   {
     href: "/playground/lesson",

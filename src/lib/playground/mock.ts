@@ -1795,3 +1795,183 @@ export function createNationalTemplateDraft(input: {
     created_by: "Super admin",
   };
 }
+
+// ---------------------------------------------------------------
+// Standard subscriptions (ecosystem level)
+// ---------------------------------------------------------------
+//
+// The ecosystem subscribes to a standard document once and every space
+// inside it inherits the subscription. In the wire-up these become
+// universal_assignments edges (ecosystem_node → root curriculum_node,
+// role_type = 'Subscribes', status active/archived); the preview keys
+// on the ecosystem id and the root document code — stable, since the
+// registry demo roots are idempotent by code.
+
+export type MockSubscriptionStatus = "active" | "archived";
+
+/** A registry root document as shown in the subscription picker. */
+export interface MockStandardDocument {
+  code: string;
+  title: string;
+  type_name: string;
+  country: string | null;
+  year: number | null;
+  status: MockTemplateStatus;
+  /** Components present in the four-component manifest, 0..4. */
+  coverage: number;
+}
+
+/** A single ecosystem → standard subscription edge (mock). */
+export interface MockSubscription {
+  ecosystem_id: string;
+  document_code: string;
+  status: MockSubscriptionStatus;
+  subscribed_by: string;
+  subscribed_at: string;
+}
+
+/** A second ecosystem so the preview can show multiple subscribers. */
+export const mockEcosystemBright: MockEcosystem = {
+  id: "eco-bright",
+  name: "Bright STEM Secondary School",
+  slug: "bright-stem",
+  type: "secondary_school",
+  vision: "Practical science for a technical world.",
+  mission:
+    "We turn national frameworks into hands-on engineering tracks learners can finish and show.",
+  description:
+    "A secondary school running technical, project-led learning programmes.",
+  calendar_year: 2026,
+  theme_primary: "#6366f1",
+  theme_supporting: "warm_slate",
+  theme_accent: "#0ea5e9",
+  badge_url: null,
+  is_private: false,
+};
+
+export const mockEcosystems: MockEcosystem[] = [mockEcosystem, mockEcosystemBright];
+
+/** Fallback catalog used when public.curriculum_nodes is unreachable. */
+export const mockStandardDocuments: MockStandardDocument[] = [
+  {
+    code: "NCDC-UPE-PRI",
+    title: "Uganda Primary Curriculum",
+    type_name: "national_syllabus",
+    country: "Uganda",
+    year: 2026,
+    status: "published",
+    coverage: 4,
+  },
+  {
+    code: "KNEC-KISW-CBC",
+    title: "Kenya Kiswahili Language Syllabus",
+    type_name: "language_syllabus",
+    country: "Kenya",
+    year: 2024,
+    status: "published",
+    coverage: 4,
+  },
+  {
+    code: "KFZ-MECH-2020",
+    title: "Automotive Mechatronics Training Regulation",
+    type_name: "occupation_framework",
+    country: "Germany",
+    year: 2020,
+    status: "published",
+    coverage: 4,
+  },
+  {
+    code: "NCAD-TRANS-01",
+    title: "Translation Programme — National Apprenticeship",
+    type_name: "translation_programme",
+    country: "Ireland",
+    year: 2021,
+    status: "published",
+    coverage: 4,
+  },
+  {
+    code: "PILOT-FLEX-25",
+    title: "Flexible Curriculum Pilot",
+    type_name: "language_syllabus",
+    country: "Uganda",
+    year: 2025,
+    status: "draft",
+    coverage: 0,
+  },
+];
+
+/** Seed subscription edges (mutable in place so the preview can toggle state). */
+export const mockSubscriptions: MockSubscription[] = [
+  {
+    ecosystem_id: "eco-sunrise",
+    document_code: "NCDC-UPE-PRI",
+    status: "active",
+    subscribed_by: "Lena Achieng",
+    subscribed_at: "2026-02-08T09:00:00.000Z",
+  },
+  {
+    ecosystem_id: "eco-sunrise",
+    document_code: "KNEC-KISW-CBC",
+    status: "active",
+    subscribed_by: "Lena Achieng",
+    subscribed_at: "2026-02-10T09:00:00.000Z",
+  },
+  {
+    ecosystem_id: "eco-sunrise",
+    document_code: "NCAD-TRANS-01",
+    status: "archived",
+    subscribed_by: "Lena Achieng",
+    subscribed_at: "2026-01-28T14:20:00.000Z",
+  },
+  {
+    ecosystem_id: "eco-bright",
+    document_code: "KFZ-MECH-2020",
+    status: "active",
+    subscribed_by: "Marcus Feld",
+    subscribed_at: "2026-02-12T11:30:00.000Z",
+  },
+  {
+    ecosystem_id: "eco-bright",
+    document_code: "KNEC-KISW-CBC",
+    status: "active",
+    subscribed_by: "Marcus Feld",
+    subscribed_at: "2026-02-12T11:31:00.000Z",
+  },
+];
+
+export function getMockSubscriptionsForEcosystem(
+  ecosystemId: string,
+): MockSubscription[] {
+  return mockSubscriptions.filter((s) => s.ecosystem_id === ecosystemId);
+}
+
+export function subscribeMockStandard(
+  ecosystemId: string,
+  documentCode: string,
+  subscribedBy: string,
+): void {
+  const existing = mockSubscriptions.find(
+    (s) => s.ecosystem_id === ecosystemId && s.document_code === documentCode,
+  );
+  if (existing) {
+    existing.status = "active";
+    return;
+  }
+  mockSubscriptions.push({
+    ecosystem_id: ecosystemId,
+    document_code: documentCode,
+    status: "active",
+    subscribed_by: subscribedBy,
+    subscribed_at: new Date().toISOString(),
+  });
+}
+
+export function unsubscribeMockStandard(
+  ecosystemId: string,
+  documentCode: string,
+): void {
+  const existing = mockSubscriptions.find(
+    (s) => s.ecosystem_id === ecosystemId && s.document_code === documentCode,
+  );
+  if (existing) existing.status = "archived";
+}
