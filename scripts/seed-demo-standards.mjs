@@ -38,7 +38,7 @@ function getConfig() {
       key: process.env.SUPABASE_SERVICE_ROLE_KEY,
     };
   }
-  const raw = execSync("supabase status 2>&1", { encoding: "utf8" });
+  const raw = execSync("supabase status -o json 2>&1", { encoding: "utf8" });
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("Could not parse `supabase status` output.");
   const info = JSON.parse(match[0]);

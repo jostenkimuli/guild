@@ -21,6 +21,8 @@ Supabase.
 - `npm.cmd run dev` — dev server on http://localhost:3000 (use `npm.cmd`, not
   `npm`: the PowerShell execution policy blocks the `.ps1` shims on this host)
 - `npm.cmd run lint` / `npm.cmd run typecheck` / `npm.cmd run build`
+- `npm.cmd run test:e2e` — Playwright user-outcome regression suite (needs the
+  local stack started and seeded; first run: `npm.cmd run test:e2e:install`)
 - `npm.cmd run db:reset` — reapplies migrations + seed from scratch
 - `npm.cmd run db:types` — regenerates `src/lib/supabase/database.types.ts`
 - `npm.cmd run db:seed:standards` — national standards + demo standards
@@ -57,6 +59,12 @@ Supabase.
 Agile docs live in `docs/agile/`: `WORKING_AGREEMENTS.md` (norms),
 `DEFINITION_OF_DONE.md` (DoD), `PRODUCT_BACKLOG.md` (stories),
 `SPRINT_PLAN.md` (current sprint). Respect the DoD before calling work done.
+
+The DoD is tiered: Tier 1 is the user outcome demonstrated through the real UI,
+Tier 2 is an automated regression test in `tests/e2e/` named by backlog ID, and
+Tier 3 is the engineering gates (lint, typecheck, build, RLS/grants, docs).
+Tiers 1 and 2 cannot be waived. CI (`.github/workflows/ci.yaml`) runs all three
+on every pull request.
 
 ## Domain model
 

@@ -220,6 +220,12 @@ projects.
 ### Schema work
 - Mentor assignment on space membership + mentee links.
 
+### DoD gate
+- First sprint under the tiered DoD (`docs/agile/DEFINITION_OF_DONE.md`):
+  every committed item ships with written acceptance criteria and at least one
+  automated user-outcome regression test (`npm run test:e2e`), demonstrated
+  through the UI before review.
+
 ---
 
 ## Sprint 4 — Teams (Phase 3)
@@ -321,3 +327,16 @@ schema keywords are presentation-only hints, and seeds stay idempotent by root
 `code`. Caught mid-flight: a fractional `training_years` value against an
 `integer` schema and PostgREST returning an empty body without
 `Prefer: return=representation`.
+
+### Process — user-outcome DoD (pre-Sprint 3)
+Definition of Done reordered into tiers: user outcome first, regression test
+second, engineering gates third. Tier 1 and Tier 2 cannot be waived. Added a
+Playwright suite (`tests/e2e/`) and CI (`.github/workflows/ci.yaml`) that runs
+lint, typecheck, build, and the suite against a freshly seeded local Supabase
+stack on PRs and main. First three specs cover S-3 (invitation-code join),
+S-4 (space home/roster), S-5 (membership management + learner denial).
+Finding: the sprint docs still describe Sprint 2 lessons (`/spaces/[slug]`
+lesson library, lesson view), but `main` now ships the syllabus flow
+(`syllabi`, `/spaces/[slug]/syllabus/new`) and has no lesson routes — the
+planned L-1/L-3/L-2 specs were remapped to existing S-3/S-4/S-5 capabilities.
+Docs need reconciling with the shipped routes.

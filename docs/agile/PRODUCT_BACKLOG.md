@@ -40,12 +40,15 @@ ecosystem-public or space-restricted.
 
 ## Backlog format
 
-Each item: `ID — title — user story (As a…, I want…, so that…) — size (S/M/L) —
-priority (P0/P1/P2)`.
+Each item: `ID — title — user story (As a…, I want…, so that…) — acceptance
+criteria (user capability: who acts, what they do, what they can see) — size
+(S/M/L) — priority (P0/P1/P2)`.
 
 - **P0**: blocks the MVP loop.
 - **P1**: strengthens the MVP loop.
 - **P2**: nice to have; keep out of sprint unless the sprint goal is met.
+- An item without acceptance criteria is not ready for a sprint (see
+  `WORKING_AGREEMENTS.md`, Definition of Ready).
 
 ## Sprint/phase mapping (roadmap → sprints)
 
@@ -95,10 +98,17 @@ priority (P0/P1/P2)`.
   elsewhere. (M, P0 — foundation for all other epics)
 - **R-2** — Assign mentors — As an owner, I want to appoint mentors to a space,
   so that learners have guides. (S, P1)
+  - AC: A space admin picks a member and assigns them as mentor; the roster
+    shows that member with the `mentor` role, and the assignment survives a
+    reload. A learner cannot assign mentors.
 - **R-3** — Mentor guidance — As a mentor, I want to see my mentees and their
   content/project progress, so that I can guide them. (M, P1)
+  - AC: A mentor opens their mentee list from the space and sees each mentee's
+    progress; a learner cannot open another learner's progress.
 - **R-4** — Role history — As a user, I want my profile to show role history
   and affiliations, so that my path is credible. (S, P2)
+  - AC: A user sees their own role history with space, role, and dates. Another
+    member cannot read it unless the space admin grants that view.
 
 ## Epic 4 — Teams (Phase 3, P1)
 

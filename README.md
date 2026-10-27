@@ -78,6 +78,30 @@ approval authority to the program admin and approve from the program console.
 | `npm run db:reset`     | Rebuild DB from migrations + seed               |
 | `npm run db:types`     | Regenerate Supabase TS types                    |
 | `npm run studio`       | Supabase Studio UI on :55423                    |
+| `npm run test:e2e`     | Playwright user-outcome regression suite        |
+| `npm run test:e2e:ui`  | Playwright interactive runner                   |
+| `npm run test:e2e:install` | Install the Chromium browser for Playwright |
+
+## Regression suite
+
+The Definition of Done puts user outcomes first, so every story ships with a
+browser-level regression test in `tests/e2e/`, named by backlog ID (for example
+`S-3-join-space.spec.ts`). The suite drives the real UI with the seeded accounts
+below.
+
+```bash
+# one-time browser install
+npm run test:e2e:install
+
+# fresh database + standards, then the suite
+npm run db:reset
+npm run db:seed:standards
+npm run test:e2e
+```
+
+Playwright starts the dev server itself (or reuses one already on
+http://localhost:3000). `tests/e2e/global-setup.ts` fails fast if the local
+Supabase stack is not running, with the exact commands to fix it.
 
 ## Project layout
 
@@ -99,6 +123,9 @@ supabase/
 docs/
   CONCEPTUAL_MODEL.md  # domain blueprint (entities, rules, schema map)
   agile/               # working agreements, DoD, backlog, sprint plan
+tests/
+  e2e/            # Playwright user-outcome regression specs (one per story ID)
+playwright.config.ts
 ```
 
 ## Domain model (current schema)
