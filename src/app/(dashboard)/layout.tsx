@@ -58,6 +58,13 @@ export default async function DashboardRootLayout({
     });
   }
 
+  if (role === "super_admin" && profile?.status === "approved") {
+    groups.push({
+      label: "Education",
+      items: [{ href: "/admin/curriculum", label: "Curriculum" }],
+    });
+  }
+
   if (role === "ecosystem_admin" && profile?.status === "approved") {
     const { data: ecosystem } = await supabase
       .from("ecosystems")

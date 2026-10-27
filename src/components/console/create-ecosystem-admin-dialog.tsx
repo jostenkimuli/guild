@@ -12,8 +12,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CreateEcosystemAdminForm } from "./forms";
+import type { NodeTypeOption } from "@/app/actions/console";
 
-export function CreateEcosystemAdminDialog() {
+export function CreateEcosystemAdminDialog({
+  nodeTypes = [],
+}: {
+  nodeTypes?: NodeTypeOption[];
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -30,7 +35,10 @@ export function CreateEcosystemAdminDialog() {
             approval to them.
           </DialogDescription>
         </DialogHeader>
-        <CreateEcosystemAdminForm onSuccess={() => setOpen(false)} />
+        <CreateEcosystemAdminForm
+          nodeTypes={nodeTypes}
+          onSuccess={() => setOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );

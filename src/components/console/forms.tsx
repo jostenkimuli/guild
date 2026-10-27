@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useActionState, useRef, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { toast } from "sonner";
@@ -14,7 +14,7 @@ import {
   createSpace,
   createSpaceAdmin,
 } from "@/app/actions/console";
-import type { ConsoleActionState } from "@/app/actions/console";
+import type { ConsoleActionState, NodeTypeOption } from "@/app/actions/console";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,9 +23,11 @@ import {
   ECOSYSTEM_TYPE_LABELS,
   SPACE_TYPE_LABELS,
   ecosystemTypeLabel,
+  nodeTypeLabel,
   type SpaceType,
 } from "@/lib/ecosystems";
 import { navigateToEcosystemSubdomain } from "@/lib/subdomain-session";
+import { CreateNodeTypeDialog } from "@/components/console/create-node-type-dialog";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -102,6 +104,7 @@ function CreateAdminAccountForm({
   hint,
   ecosystemId,
   showEcosystemType = false,
+  nodeTypes = [],
   onSuccess,
 }: {
   idPrefix: string;
@@ -113,6 +116,7 @@ function CreateAdminAccountForm({
   hint: string;
   ecosystemId?: string;
   showEcosystemType?: boolean;
+  nodeTypes?: NodeTypeOption[];
   onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(action, {
@@ -120,67 +124,113 @@ function CreateAdminAccountForm({
   });
   useRefreshOnSuccess(state, onSuccess);
 
+  // The ecosystem-type dropdown is populated from the node_types
+  // registry (organisational/community types). "Add new type" at the
+  // bottom opens a modal that creates a new registry row and selects it.
+  const [types, setTypes] = useState<NodeTypeOption[]>(nodeTypes);
+  const [selectedType, setSelectedType] = useState(
+    nodeTypes.find((t) => t.type_name === "primary_school")?.type_name ??
+      nodeTypes[0]?.type_name ??
+      "primary_school",
+  );
+  const [addTypeOpen, setAddTypeOpen] = useState(false);
+
+  const organizationalTypes = types.filter(
+    (t) => t.category === "ORGANIZATIONAL",
+  );
+
+  const handleTypeChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    if (event.target.value === "__add_new_type__") return;
+    setSelectedType(event.target.value);
+  };
+
   return (
-    <form action={formAction} className="space-y-4">
-      {ecosystemId ? (
-        <input type="hidden" name="ecosystem_id" value={ecosystemId} />
-      ) : null}
-      <Field id={`${idPrefix}-full_name`} label="Full name">
-        <Input
-          id={`${idPrefix}-full_name`}
-          name="full_name"
-          autoComplete="name"
-          required
-          minLength={2}
-          maxLength={120}
-        />
-      </Field>
-      <Field id={`${idPrefix}-email`} label="Email">
-        <Input
-          id={`${idPrefix}-email`}
-          name="email"
-          type="email"
-          required
-          maxLength={120}
-          autoComplete="off"
-        />
-      </Field>
-      {showEcosystemType ? (
-        <Field
-          id={`${idPrefix}-ecosystem_type`}
-          label="Ecosystem type"
-          hint="The type of ecosystem this admin will create."
-        >
-          <select
-            id={`${idPrefix}-ecosystem_type`}
-            name="ecosystem_type"
-            className={selectClass}
-            defaultValue="primary_school"
-          >
-            {Object.entries(ECOSYSTEM_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+    <>
+      <form action={formAction} className="space-y-4">
+        {ecosystemId ? (
+          <input type="hidden" name="ecosystem_id" value={ecosystemId} />
+        ) : null}
+        <Field id={`${idPrefix}-full_name`} label="Full name">
+          <Input
+            id={`${idPrefix}-full_name`}
+            name="full_name"
+            autoComplete="name"
+            required
+            minLength={2}
+            maxLength={120}
+          />
         </Field>
-      ) : null}
-      <Field id={`${idPrefix}-temp_password`} label="Temporary password" hint={hint}>
-        <Input
-          id={`${idPrefix}-temp_password`}
-          name="temp_password"
-          type="password"
-          required
-          minLength={6}
-          maxLength={72}
-          autoComplete="new-password"
+        <Field id={`${idPrefix}-email`} label="Email">
+          <Input
+            id={`${idPrefix}-email`}
+            name="email"
+            type="email"
+            required
+            maxLength={120}
+            autoComplete="off"
+          />
+        </Field>
+        {showEcosystemType ? (
+          <Field
+            id={`${idPrefix}-ecosystem_type`}
+            label="Ecosystem type"
+            hint="The type of ecosystem this admin will create."
+          >
+            <select
+              id={`${idPrefix}-ecosystem_type`}
+              name="ecosystem_type"
+              className={selectClass}
+              value={selectedType}
+              onChange={handleTypeChange}
+            >
+              {organizationalTypes.length > 0 ? (
+                organizationalTypes.map((type) => (
+                  <option key={type.type_id} value={type.type_name}>
+                    {nodeTypeLabel(type.type_name)}
+                  </option>
+                ))
+              ) : (
+                <option value="primary_school">
+                  {ECOSYSTEM_TYPE_LABELS.primary_school}
+                </option>
+              )}
+              <option value="__add_new_type__">+ Add new type…</option>
+            </select>
+          </Field>
+        ) : null}
+        <Field id={`${idPrefix}-temp_password`} label="Temporary password" hint={hint}>
+          <Input
+            id={`${idPrefix}-temp_password`}
+            name="temp_password"
+            type="password"
+            required
+            minLength={6}
+            maxLength={72}
+            autoComplete="new-password"
+          />
+        </Field>
+        <Feedback state={state} />
+        <Button type="submit" disabled={pending}>
+          {actionLabel}
+        </Button>
+      </form>
+
+      {showEcosystemType ? (
+        <CreateNodeTypeDialog
+          open={addTypeOpen}
+          onOpenChange={setAddTypeOpen}
+          defaultCategory="ORGANIZATIONAL"
+          onCreated={(nodeType) => {
+            setTypes((current) =>
+              current.some((t) => t.type_id === nodeType.type_id)
+                ? current
+                : [...current, nodeType],
+            );
+            setSelectedType(nodeType.type_name);
+          }}
         />
-      </Field>
-      <Feedback state={state} />
-      <Button type="submit" disabled={pending}>
-        {actionLabel}
-      </Button>
-    </form>
+      ) : null}
+    </>
   );
 }
 
@@ -201,8 +251,10 @@ export function CreateProgramAdminForm({
 }
 
 export function CreateEcosystemAdminForm({
+  nodeTypes = [],
   onSuccess,
 }: {
+  nodeTypes?: NodeTypeOption[];
   onSuccess?: () => void;
 }) {
   return (
@@ -212,6 +264,7 @@ export function CreateEcosystemAdminForm({
       actionLabel="Create ecosystem admin"
       hint="The account starts pending. Approval is decided by the super admin, or by the program admin if the super admin has delegated approval to them."
       showEcosystemType
+      nodeTypes={nodeTypes}
       onSuccess={onSuccess}
     />
   );

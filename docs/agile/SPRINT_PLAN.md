@@ -158,6 +158,55 @@ the container layer of the product.
 
 ---
 
+## Sprint 2b — Curriculum documents & standard registry (Phase 1b-tail) — DONE
+
+**Goal:** national standards and external curriculum definitions become
+schema-as-data documents on the universal spine — the curriculum engine reads
+and authorizes any registered standard.
+
+### Schema work — DONE
+- `curriculum_nodes` universal node abstraction (migration
+  `20260825000003_universal_node_abstraction.sql`): one tree (`type_id`,
+  `parent_node_id`, `payload jsonb`, `status`, `code`, `order_index`) + RLS +
+  grants; every row resolves to its curriculum via SECURITY DEFINER helpers.
+- `national_standard_nodes.sql` (`20260924000000`): NCDC-type registry rows
+  (subject/level/national_syllabus/syllabus_topic/outcome/indicator/theme/
+  sub_theme/learning_area) with per-type JSON Schema + `curriculum_template`
+  root; `node_payload_valid` + the `curriculum_nodes_payload_check` row CHECK
+  as the authority; seed `scripts/seed-national-standards.mjs` (115 nodes,
+  idempotent rebuild by root code).
+- Schema-as-data (`20260925000000_node_schema_data.sql`): `node_types` widened
+  (`payload_schema` jsonb, `allowed_children`, `is_root`); public demo types
+  (`20260926000000_demo_standard_types.sql`) register
+  `occupation_framework`, `language_syllabus`, `translation_programme` roots +
+  four-component manifests; parent guard (`20260927000000_enforce_parent_guard`
+  ) rejects non-root top-level documents.
+- Demo standards seed (`scripts/seed-demo-standards.mjs`): `KFZ-MECH-2020`
+  (Germany), `KNEC-KISW-CBC` (Kenya Kiswahili), `NCAD-TRANS-01` (Ireland),
+  idempotent by root `code`, each 4/4 component coverage (143 nodes total).
+  `db:seed:standards` chains national + demo; `db:seed:demo` runs the demo arm.
+- Enforcement verified: root manifest exactly 4 components, no bogus ids,
+  non-root-as-root rejected, schema violations rejected, `allowed_children`
+  respected — via rollback-scoped negative tests.
+
+### UI work — DONE
+- `/admin/curriculum` Standard Registry panel (`standard-registry-panel.tsx`):
+  node-type CRUD with JSON-Schema form editor (`json-schema-form.tsx` +
+  `json-schema-view.tsx`), document cards with component-coverage badges
+  (`computeComponentCoverage` from `src/lib/curriculum-spine/registry.ts`),
+  recursive node tree with inline status + add-child + payload editing.
+- Server actions `src/app/actions/standard-registry.ts` (type CRUD, document/
+  node create/save/status/delete with manifest preservation);
+  `toJson` extracted to `src/lib/curriculum-spine/json.ts` (server actions
+  must all be async).
+
+### DoD notes
+- Fresh `db:reset` + `db:seed:standards` pass; `db:types` regenerated and
+  committed; lint/typecheck/`next build` green; positive + negative DB
+  validation tests pass; demo roots register 4/4 coverage.
+
+---
+
 ## Sprint 3 — Mentors (Phase 2)
 
 **Goal:** mentorship capability — mentors guide learners through content and
@@ -260,3 +309,15 @@ objective-level evidence. Started from the plan's single `content` table but
 expanded (with agreement) to the full design because it directly serves the
 MVP loop and the conceptual model; learner self-tracking on objective results
 was added after the first pass so L-4 works for members, not just teachers.
+
+### Sprint 2b
+Widened the curriculum engine to schema-as-data: the universal
+`curriculum_nodes` spine + a `node_types` registry let any external standard
+(Germany/Kenya/Ireland demos) be defined as data with per-type JSON Schemas
+and four-component manifests. Contract decisions that stuck: the DB CHECK
+(`node_payload_valid`) is the single authority (not app code), root manifests
+must be exactly `intent | content | learning_teaching | assessment`, custom
+schema keywords are presentation-only hints, and seeds stay idempotent by root
+`code`. Caught mid-flight: a fractional `training_years` value against an
+`integer` schema and PostgREST returning an empty body without
+`Prefer: return=representation`.

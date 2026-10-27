@@ -61,6 +61,18 @@ export function ecosystemTypeLabel(type: string | null | undefined): string {
 }
 
 /**
+ * Human label for a node_types.type_name key (e.g. "nursery_school"
+ * → "Nursery School"). Falls back to the raw value.
+ */
+export function nodeTypeLabel(typeName: string | null | undefined): string {
+  if (!typeName) return "Node type";
+  return typeName
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/**
  * K-12 school ecosystems (nursery, primary, secondary). These get
  * the dash.html school-creation wizard, the school admin dashboard
  * and the theme/badge customization experience. Universities and

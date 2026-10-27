@@ -7,7 +7,8 @@ import { CreateEcosystemAdminBySuperAdminDialog } from "@/components/console/cre
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import { ecosystemTypeLabel } from "@/lib/ecosystems";
+import { ecosystemTypeLabel, nodeTypeLabel } from "@/lib/ecosystems";
+import { CreateNodeTypeButton } from "@/components/console/create-node-type-dialog";
 
 export default async function AdminPage({
   searchParams,
@@ -82,6 +83,18 @@ export default async function AdminPage({
   );
 
   const delegated = profile.can_approve_ecosystem_admins;
+
+  const {
+    data: rawNodeTypes,
+  } = await supabase.from("node_types").select("type_id, type_name, category");
+  const nodeTypes = rawNodeTypes ?? [];
+
+  const organizationalTypes = nodeTypes.filter(
+    (t) => t.category === "ORGANIZATIONAL",
+  );
+  const educationalTypes = nodeTypes.filter(
+    (t) => t.category === "EDUCATIONAL",
+  );
 
   return (
     <section className="mt-4 space-y-4">
@@ -177,6 +190,56 @@ export default async function AdminPage({
               </EmptyState>
             )}
           </ConsolePanel>
+
+          <ConsolePanel
+            title="Node types"
+            description="The universal registry of community and curriculum node kinds. Community types feed the ecosystem-type dropdown when creating ecosystem admins."
+            footer={<CreateNodeTypeButton />}
+          >
+            {nodeTypes.length > 0 ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Organizational (community)
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {organizationalTypes.map((type) => (
+                      <Badge key={type.type_id} variant="secondary">
+                        {nodeTypeLabel(type.type_name)}
+                      </Badge>
+                    ))}
+                    {organizationalTypes.length === 0 ? (
+                      <span className="text-sm text-muted-foreground">
+                        No community types yet.
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Educational
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {educationalTypes.map((type) => (
+                      <Badge key={type.type_id} variant="outline">
+                        {nodeTypeLabel(type.type_name)}
+                      </Badge>
+                    ))}
+                    {educationalTypes.length === 0 ? (
+                      <span className="text-sm text-muted-foreground">
+                        No educational types yet.
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {nodeTypes.length} type{nodeTypes.length === 1 ? "" : "s"} total.
+                </p>
+              </div>
+            ) : (
+              <EmptyState>No node types found.</EmptyState>
+            )}
+          </ConsolePanel>
         </>
       ) : null}
 
@@ -235,7 +298,9 @@ export default async function AdminPage({
       <ConsolePanel
         title="Approved ecosystem admins"
         footer={
-          isSuperAdmin ? <CreateEcosystemAdminBySuperAdminDialog /> : undefined
+          isSuperAdmin ? (
+            <CreateEcosystemAdminBySuperAdminDialog nodeTypes={nodeTypes} />
+          ) : undefined
         }
       >
         {approvedEcosystems.length > 0 ? (

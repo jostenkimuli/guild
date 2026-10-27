@@ -15,6 +15,16 @@ export type ConsoleActionState = {
   ecosystemId?: string;
 };
 
+export type NodeTypeOption = {
+  type_id: number;
+  type_name: string;
+  category: string;
+};
+
+export type CreateNodeTypeState = ConsoleActionState & {
+  nodeType?: NodeTypeOption;
+};
+
 export type EditSpaceState = ConsoleActionState & {
   request?: {
     id: string;
@@ -143,14 +153,33 @@ export async function createEcosystemAdmin(
   const invalid = validateAccountFields(email, tempPassword, fullName);
   if (invalid) return { success: false, error: invalid };
 
-  const ecosystemType = typeRaw
-    ? (typeRaw as Database["public"]["Enums"]["ecosystem_type"])
-    : "primary_school";
-  if (!ECOSYSTEM_TYPES.includes(ecosystemType)) {
-    return { success: false, error: "Invalid ecosystem type." };
+  const supabase = await createClient();
+
+  // The ecosystem-type dropdown is sourced from the node_types
+  // registry. Enum-compatible picks still set profiles.ecosystem_type
+  // (for the existing ecosystems.type); every pick is preserved as
+  // profiles.node_type_id so the node layer keeps the exact type even
+  // when it has no enum value yet.
+  let nodeTypeId: number | undefined = undefined;
+  let ecosystemType: Database["public"]["Enums"]["ecosystem_type"] = "primary_school";
+  if (typeRaw) {
+    const { data: nodeType } = await supabase
+      .from("node_types")
+      .select("type_id")
+      .eq("type_name", typeRaw)
+      .maybeSingle();
+    if (nodeType) {
+      nodeTypeId = nodeType.type_id;
+      if (
+        ECOSYSTEM_TYPES.includes(
+          typeRaw as Database["public"]["Enums"]["ecosystem_type"],
+        )
+      ) {
+        ecosystemType = typeRaw as Database["public"]["Enums"]["ecosystem_type"];
+      }
+    }
   }
 
-  const supabase = await createClient();
   const { error } = await supabase.rpc("admin_create_user", {
     p_email: email,
     p_temp_password: tempPassword,
@@ -159,10 +188,67 @@ export async function createEcosystemAdmin(
     p_ecosystem_id: undefined,
     p_status: "pending",
     p_ecosystem_type: ecosystemType,
+    p_node_type_id: nodeTypeId,
   });
 
   if (error) return { success: false, error: error.message };
   return { success: true };
+}
+
+// ------------------------------------------------------------
+// Super admin or approved program admin: add a node type to the
+// universal registry (also reached from the "Add new type" item in
+// the ecosystem-admin creation form).
+// ------------------------------------------------------------
+
+const NODE_TYPE_CATEGORIES = ["ORGANIZATIONAL", "EDUCATIONAL"];
+
+export async function createNodeType(
+  _: CreateNodeTypeState,
+  formData: FormData,
+): Promise<CreateNodeTypeState> {
+  const profile = await getProfile();
+  if (!profile) return { success: false, error: "Not signed in." };
+
+  const canManage =
+    (profile.role === "super_admin" || profile.role === "program_admin") &&
+    profile.status === "approved";
+  if (!canManage) {
+    return {
+      success: false,
+      error: "Only an approved admin can add node types.",
+    };
+  }
+
+  const typeName = String(formData.get("type_name") ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .slice(0, 50);
+  const category = String(formData.get("category") ?? "").trim().toUpperCase();
+
+  if (!typeName) {
+    return { success: false, error: "A type name is required." };
+  }
+  if (!NODE_TYPE_CATEGORIES.includes(category)) {
+    return { success: false, error: "Choose a valid category." };
+  }
+
+  const supabase = await createClient();
+  const { data: nodeType, error } = await supabase
+    .from("node_types")
+    .insert({ type_name: typeName, category })
+    .select("type_id, type_name, category")
+    .single();
+
+  if (error) {
+    const message =
+      error.code === "23505"
+        ? "That type name already exists."
+        : error.message;
+    return { success: false, error: message };
+  }
+  return { success: true, nodeType };
 }
 
 // ------------------------------------------------------------

@@ -75,6 +75,8 @@ should stay in lockstep with it.
 | Lesson parts | `activities`, `assessments`; shared `resources` via `lesson_resources` (M2M) | Sprint 2; parts of a lesson plan |
 | Unit projects | `projects` | Sprint 2; one project per unit |
 | Curriculum evaluation | `curriculum_evaluations` | Sprint 2; period + achievement rate per curriculum |
+| Standard node type | `node_types` | Schema-as-data registry: `payload_schema`, `allowed_children`, `is_root` (+ `component_manifest` implied) |
+| Standard document | `curriculum_nodes` (root rows) | Any external curriculum definition as data; seeded demo roots `KFZ-MECH-2020`, `KNEC-KISW-CBC`, `NCAD-TRANS-01` |
 | Challenge | — | returns as redesigned table (Sprint 5) |
 | Project | — | returns as redesigned table (Sprint 6) |
 
@@ -102,6 +104,39 @@ lesson_resources → resources; projects (per unit); curriculum_evaluations
 - Every row resolves to its curriculum (SECURITY DEFINER helpers); RLS then
   scopes access through the curriculum's Space: members read, space staff
   (admin/teacher) write.
+
+### Standard registry (schema-as-data)
+
+Any national standard or external curriculum definition (Germany's KFZ training
+regulation, Kenya's Kenya National Curriculum Framework, an Irish book
+translation programme) is registered as **data** on the universal
+`curriculum_nodes` tree; `node_types` is the type registry:
+
+- A **type** (`node_types`) carries a `category`, `is_root`, an optional
+  draft-7 `payload_schema` formalizing its document shape, and for root-capable
+  types a `component_manifest` of exactly four components:
+  `intent | content | learning_teaching | assessment`. Custom schema keywords
+  (`x-order`, `x-help`) are presentation hints only — pg_jsonschema ignores
+  them. Registration happens in the Standard Registry panel on
+  `/admin/curriculum` or via migration (`on conflict (type_name) do nothing`).
+- A **document** is a root `curriculum_nodes` row whose type is root-capable;
+  its `payload` (validated against the type's schema) forms a tree via
+  `allowed_children` (e.g. `occupation_framework → [learning_field] →
+  [training_year] → [competence_area]`). Each component in the manifest maps to
+  a populated payload anchor (`{ kind: "payload", path }`) so the registry can
+  compute per-component coverage (`computeComponentCoverage` in
+  `src/lib/curriculum-spine/registry.ts`).
+- **Enforcement invariants** (all live in `node_payload_valid`, exposed to
+  `curriculum_nodes` via the `curriculum_nodes_payload_check` CHECK): root
+  manifests must be exactly-intent/content/learning_teaching/assessment; a
+  non-root type may never be a top-level document; payloads must satisfy the
+  registered JSON Schema; writes to `curriculum_nodes`/`node_types` are
+  super-admin-only (RLS).
+- **Demo standards** are seeded idempotently by root `code`
+  (`npm run db:seed:standards`): `KFZ-MECH-2020` (Germany,
+  `occupation_framework`), `KNEC-KISW-CBC` (Kenya Kiswahili,
+  `language_syllabus`), `NCAD-TRANS-01` (Ireland, `translation_programme`) —
+  each resolving 4/4 component coverage.
 
 ### Approval chain (Sprint 1)
 

@@ -12,8 +12,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CreateEcosystemAdminForm } from "./forms";
+import type { NodeTypeOption } from "@/app/actions/console";
 
-export function CreateEcosystemAdminBySuperAdminDialog() {
+export function CreateEcosystemAdminBySuperAdminDialog({
+  nodeTypes = [],
+}: {
+  nodeTypes?: NodeTypeOption[];
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -29,7 +34,10 @@ export function CreateEcosystemAdminBySuperAdminDialog() {
             so it can sign in and create its ecosystem right away.
           </DialogDescription>
         </DialogHeader>
-        <CreateEcosystemAdminForm onSuccess={() => setOpen(false)} />
+        <CreateEcosystemAdminForm
+          nodeTypes={nodeTypes}
+          onSuccess={() => setOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );
