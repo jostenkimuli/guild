@@ -2304,7 +2304,7 @@ export function CurriculumAdminPreview({
   const [mode, setMode] = useState<PreviewMode>("templates");
   const [templateId, setTemplateId] = useState(firstTemplate?.id ?? "");
   const [syllabusId, setSyllabusId] = useState<string | null>(null);
-  const [thematicId, setThematicId] = useState(defaultThematic.id);
+  const [thematicId, setThematicId] = useState(defaultThematic?.id ?? "");
 
   const [onboardingStructureType, setOnboardingStructureType] =
     useState<OnboardingStructureType>("subject");

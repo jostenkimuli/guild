@@ -16,26 +16,28 @@ type SpineSupabase = Awaited<ReturnType<typeof createClient>>;
 async function fetchSpineRows(
   supabase: SpineSupabase,
 ): Promise<{ typeRows: NodeTypeRowLike[]; nodes: SpineNodeRowLike[] }> {
-  const { data: typeRows, error: typeError } = await supabase
-    .from("node_types")
-    .select("type_id, type_name, category, payload_schema, allowed_children, is_root");
+  const [{ data: typeRows, error: typeError }, { data: nodes, error: nodesError }] =
+    await Promise.all([
+      supabase
+        .from("node_types")
+        .select("type_id, type_name, category, payload_schema, allowed_children, is_root"),
+      supabase
+        .from("curriculum_nodes")
+        .select(
+          "curriculum_node_id, parent_node_id, type_id, title, code, order_index, status, published_at, payload",
+        )
+        .order("order_index", { ascending: true }),
+    ]);
   if (typeError) {
     throw new Error(`Failed to load node types: ${typeError.message}`);
   }
-
-  const { data: nodes, error: nodesError } = await supabase
-    .from("curriculum_nodes")
-    .select(
-      "curriculum_node_id, parent_node_id, type_id, title, code, order_index, status, published_at, payload",
-    )
-    .order("order_index", { ascending: true });
   if (nodesError) {
     throw new Error(`Failed to load curriculum nodes: ${nodesError.message}`);
   }
 
   return {
-    typeRows: (typeRows ?? []) as NodeTypeRowLike[],
-    nodes: (nodes ?? []) as SpineNodeRowLike[],
+    typeRows: (Array.isArray(typeRows) ? typeRows : []) as NodeTypeRowLike[],
+    nodes: (Array.isArray(nodes) ? nodes : []) as SpineNodeRowLike[],
   };
 }
 

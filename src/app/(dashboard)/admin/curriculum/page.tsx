@@ -26,10 +26,29 @@ export default async function AdminCurriculumPage() {
     redirect("/");
   }
 
-  const [dataset, registry] = await Promise.all([
-    loadNationalStandardDataset(),
-    loadStandardRegistry(),
-  ]);
+  let dataset: any = null;
+  let registry: any = null;
+  try {
+    [dataset, registry] = await Promise.all([
+      loadNationalStandardDataset(),
+      loadStandardRegistry(),
+    ]);
+  } catch (error) {
+    console.error("Failed to load curriculum admin data", error);
+  }
+
+  const safeDataset = dataset ?? {
+    nodeCount: 0,
+    counts: {},
+    templates: [],
+    templateSubjects: [],
+    templateLevels: [],
+    nationalSyllabi: [],
+    syllabusTopics: [],
+    curriculumOutcomes: [],
+    thematicCurricula: [],
+  };
+  const safeRegistry = registry ?? { types: [], nodes: [] };
 
   return (
     <section className="mt-4 space-y-6">
@@ -52,9 +71,12 @@ export default async function AdminCurriculumPage() {
         </p>
       </div>
 
-      <CurriculumAdminPreview dataset={dataset} />
+      <CurriculumAdminPreview dataset={safeDataset} />
 
-      <StandardRegistryPanel types={registry.types} nodes={registry.nodes} />
+      <StandardRegistryPanel
+        types={Array.isArray(safeRegistry?.types) ? safeRegistry.types : []}
+        nodes={Array.isArray(safeRegistry?.nodes) ? safeRegistry.nodes : []}
+      />
     </section>
   );
 }

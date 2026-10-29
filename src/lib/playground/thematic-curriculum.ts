@@ -1631,7 +1631,7 @@ export function getThematicCurriculumById(
 }
 
 /** Default to the first published thematic document (Primary 1). */
-export function getThematicCurriculum(): MockThematicCurriculum {
+export function getThematicCurriculum(): MockThematicCurriculum | undefined {
   return (
     mockThematicCurricula.find((curriculum) => curriculum.status === "published") ??
     mockThematicCurricula[0]

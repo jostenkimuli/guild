@@ -76,30 +76,42 @@ export function buildNodeTypeDescriptor(row: NodeTypeRowLike): NodeTypeDescripto
 
 /** Assemble the registry payload from raw `node_types` + `curriculum_nodes` rows. */
 export function buildStandardRegistry(
-  typeRows: NodeTypeRowLike[],
-  nodeRows: SpineNodeRowLike[],
+  typeRows: NodeTypeRowLike[] = [],
+  nodeRows: SpineNodeRowLike[] = [],
 ): StandardRegistryData {
+  const safeTypeRows = Array.isArray(typeRows) ? typeRows.filter(Boolean) : [];
+  const safeNodeRows = Array.isArray(nodeRows) ? nodeRows.filter(Boolean) : [];
+
   const typeById = new Map<number, NodeTypeDescriptor>();
-  for (const row of typeRows) {
-    const descriptor = buildNodeTypeDescriptor(row);
-    typeById.set(descriptor.typeId, descriptor);
+  for (const row of safeTypeRows) {
+    try {
+      const descriptor = buildNodeTypeDescriptor(row);
+      typeById.set(descriptor.typeId, descriptor);
+    } catch {
+      // skip malformed type rows
+    }
   }
 
-  const nodes: SpineNode[] = nodeRows.map((row) => {
-    const typeName = typeById.get(row.type_id ?? -1)?.typeName ?? "unknown";
-    return {
-      id: row.curriculum_node_id,
-      parentId: row.parent_node_id,
-      typeId: row.type_id ?? -1,
-      typeName,
-      title: row.title,
-      code: row.code,
-      orderIndex: row.order_index,
-      status: (row.status || "draft") as StandardStatus,
-      publishedAt: row.published_at,
-      payload: (row.payload ?? {}) as Record<string, unknown>,
-    };
-  });
+  const nodes: SpineNode[] = [];
+  for (const row of safeNodeRows) {
+    try {
+      const typeName = typeById.get(row.type_id ?? -1)?.typeName ?? "unknown";
+      nodes.push({
+        id: row.curriculum_node_id,
+        parentId: row.parent_node_id ?? null,
+        typeId: row.type_id ?? -1,
+        typeName,
+        title: row.title ?? "",
+        code: row.code ?? null,
+        orderIndex: row.order_index ?? 0,
+        status: ((row.status as StandardStatus) || "draft"),
+        publishedAt: row.published_at ?? null,
+        payload: (row.payload ?? {}) as Record<string, unknown>,
+      });
+    } catch {
+      // skip malformed nodes
+    }
+  }
 
   return { types: [...typeById.values()], nodes };
 }

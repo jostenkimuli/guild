@@ -124,7 +124,7 @@ export function buildDatabaseDataset(
   const thematicCurricula: MockThematicCurriculum[] = [];
 
   for (const root of nodes.filter(
-    (node) => typeName(node) === "curriculum_template",
+    (node) => typeName(node) === "curriculum_template" || typeName(node) === "national_standard",
   )) {
     const p = payload(root);
     const templateId = `nat-${slug(root.code ?? root.title)}`;
